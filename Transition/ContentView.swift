@@ -1,10 +1,6 @@
 import SwiftUI
 import Charts
 
-struct DummyColors {
-    static let colors: [Color] = [.red, .yellow, .green, .blue, .black, .purple, .gray]
-}
-
 struct DummyChart: View {
     var body: some View {
         Chart {
@@ -36,15 +32,24 @@ struct ContentView: View {
                         ) {
                             DummyChart()
                         }
-                        
+                        .opacity(selectedItem == index ? 0 : 1)
                     }
                 }
             }
             .customFullScreenCover(show: $show) {
-                DetailView(
-                    namespace: namespace,
-                           selectedItem: $selectedItem) {
-                   DummyChart()
+                if let selectedItem {
+                    DetailView(
+                        id: selectedItem,
+                        namespace: namespace,
+                        selectedItem: $selectedItem,
+                        content: {
+                            DummyChart()
+                        }, detailedContent: {
+                            VStack {
+                                Text("Titulo otra vez")
+                                Text("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus euismod quis purus nec feugiat. Sed mi erat, sagittis sed mollis nec, bibendum sit amet mauris. Sed pellentesque, sapien ut faucibus venenatis, sem leo cursus purus, in posuere sem odio id lacus. In eget fringilla nulla. Aenean a nisi sit amet metus feugiat ultricies luctus vel purus. Vivamus cursus lobortis leo vitae placerat. Vestibulum ut eleifend ipsum, at congue lectus. Nullam mollis purus at eros ultricies lobortis. Pellentesque cursus id ante elementum vehicula")
+                            }
+                        })
                 }
             }
         }
@@ -83,16 +88,20 @@ struct OverView<Content: View>: View {
                 .frame(height: 200)
             Text("Titulo")
                 .matchedGeometryEffect(id: "title" + "\(id)", in: namespace)
+                .opacity(selectedItem == nil ? 1 : 0)
+                .frame(maxWidth: .infinity, alignment: .leading)
             Text("Subtitlo")
                 .matchedGeometryEffect(id: "subtitle" + "\(id)", in: namespace)
+                .opacity(selectedItem == nil ? 1 : 0)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 18)
-                .foregroundStyle(DummyColors.colors[id])
+                .stroke(lineWidth: 1)
+                .foregroundStyle(.gray.opacity(0.3))
                 .matchedGeometryEffect(id: "\(id)", in: namespace)
         )
-        .clipped()
         .padding()
         .onTapGesture {
             withAnimation(.snappy(duration: 0.3)) {
@@ -104,59 +113,78 @@ struct OverView<Content: View>: View {
 }
 
 
-struct DetailView<Content: View>: View {
+struct DetailView<Content: View, DetailedContent: View>: View {
     var namespace: Namespace.ID
-    
-    @Binding var selectedItem: Int?
+    var id: Int
     
     @State var animate: Bool = false
     @State var animateTransition: Bool = false
     
     @Environment(\.dismiss) private var dismiss
     
+    @Binding var selectedItem: Int?
     @ViewBuilder let content: Content
+    @ViewBuilder let detailedContent: DetailedContent
     
     public init(
+        id: Int,
         namespace: Namespace.ID,
         selectedItem: Binding<Int?>,
-        @ViewBuilder content: () -> Content
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder detailedContent: () -> DetailedContent
     ) {
+        self.id = id
         self.namespace = namespace
         self._selectedItem = selectedItem
         self.content = content()
+        self.detailedContent = detailedContent()
     }
     
     var body: some View {
         VStack {
-            if let selectedItem,
-               animateTransition {
-                content
-                    .matchedGeometryEffect(id: "content" + "\(selectedItem)", in: namespace)
-                    .background(
-                        RoundedRectangle(cornerRadius: 18)
-                            .foregroundStyle(DummyColors.colors[selectedItem])
-                            .matchedGeometryEffect(id: "\(selectedItem)", in: namespace)
-                    )
-                    .frame(height: 200)
-                    .transition(.asymmetric(insertion: .identity, removal: .identity))
-                    .padding()
+            if animateTransition {
+                ZStack(alignment: .bottom) {
+                    content
+                        .matchedGeometryEffect(id: "content" + "\(id)", in: namespace)
+                        .frame(height: 200)
+                    Text("Titulo")
+                        .matchedGeometryEffect(id: "title" + "\(id)", in: namespace)
+                        .transition(.opacity)
+                        .opacity(0)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text("Subtitlo")
+                        .matchedGeometryEffect(id: "subtitle" + "\(id)", in: namespace)
+                        .opacity(0)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(lineWidth: 1)
+                        .foregroundStyle(.gray.opacity(0.3))
+                        .matchedGeometryEffect(id: "\(id)", in: namespace)
+                )
+                .padding()
             }
+            
+            detailedContent
+                .offset(y: animate ? 0 : UIScreen.main.bounds.size.height)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(
             Rectangle()
-                .foregroundStyle(.ultraThinMaterial)
+                .foregroundStyle(.thickMaterial)
                 .opacity(animate ? 1 : 0)
                 .ignoresSafeArea()
         )
         .onAppear {
-            withAnimation(.snappy(duration: 0.3)) {
+            withAnimation(.snappy) {
                 animate = true
                 animateTransition = true
             }
         }
         .onTapGesture {
-            withAnimation(.snappy(duration: 0.3)) {
+            withAnimation(.snappy) {
                 animateTransition = false
                 animate = false
                 selectedItem = nil
