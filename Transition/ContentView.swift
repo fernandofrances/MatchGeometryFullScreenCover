@@ -32,7 +32,6 @@ struct ContentView: View {
                         ) {
                             DummyChart()
                         }
-                        .opacity(selectedItem == index ? 0 : 1)
                     }
                 }
             }
@@ -47,7 +46,9 @@ struct ContentView: View {
                         }, detailedContent: {
                             VStack {
                                 Text("Titulo otra vez")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                                 Text("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus euismod quis purus nec feugiat. Sed mi erat, sagittis sed mollis nec, bibendum sit amet mauris. Sed pellentesque, sapien ut faucibus venenatis, sem leo cursus purus, in posuere sem odio id lacus. In eget fringilla nulla. Aenean a nisi sit amet metus feugiat ultricies luctus vel purus. Vivamus cursus lobortis leo vitae placerat. Vestibulum ut eleifend ipsum, at congue lectus. Nullam mollis purus at eros ultricies lobortis. Pellentesque cursus id ante elementum vehicula")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                             }
                         })
                 }
@@ -102,13 +103,13 @@ struct OverView<Content: View>: View {
                 .foregroundStyle(.gray.opacity(0.3))
                 .matchedGeometryEffect(id: "\(id)", in: namespace)
         )
-        .padding()
         .onTapGesture {
-            withAnimation(.snappy(duration: 0.3)) {
+            withAnimation(.spring(duration: 0.35, bounce: 0.2)) {
                 selectedItem = id
                 show.toggle()
             }
         }
+        .padding()
     }
 }
 
@@ -141,36 +142,38 @@ struct DetailView<Content: View, DetailedContent: View>: View {
     }
     
     var body: some View {
-        VStack {
-            if animateTransition {
-                ZStack(alignment: .bottom) {
-                    content
-                        .matchedGeometryEffect(id: "content" + "\(id)", in: namespace)
-                        .frame(height: 200)
-                    Text("Titulo")
-                        .matchedGeometryEffect(id: "title" + "\(id)", in: namespace)
-                        .transition(.opacity)
-                        .opacity(0)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Text("Subtitlo")
-                        .matchedGeometryEffect(id: "subtitle" + "\(id)", in: namespace)
-                        .opacity(0)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+        ScrollView {
+            VStack {
+                if animateTransition {
+                    ZStack(alignment: .bottom) {
+                        content
+                            .matchedGeometryEffect(id: "content" + "\(id)", in: namespace)
+                            .frame(height: 200)
+                        Text("Titulo")
+                            .matchedGeometryEffect(id: "title" + "\(id)", in: namespace)
+                            .transition(.opacity)
+                            .opacity(0)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Text("Subtitlo")
+                            .matchedGeometryEffect(id: "subtitle" + "\(id)", in: namespace)
+                            .opacity(0)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 18)
+                            .stroke(lineWidth: 1)
+                            .foregroundStyle(.gray.opacity(0.3))
+                            .matchedGeometryEffect(id: "\(id)", in: namespace)
+                    )
+                    .padding()
                 }
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 18)
-                        .stroke(lineWidth: 1)
-                        .foregroundStyle(.gray.opacity(0.3))
-                        .matchedGeometryEffect(id: "\(id)", in: namespace)
-                )
-                .padding()
+                
+                detailedContent
+                    .offset(y: animate ? 0 : UIScreen.main.bounds.size.height)
+                    .padding()
             }
-            
-            detailedContent
-                .offset(y: animate ? 0 : UIScreen.main.bounds.size.height)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(
             Rectangle()
                 .foregroundStyle(.thickMaterial)
@@ -178,13 +181,13 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                 .ignoresSafeArea()
         )
         .onAppear {
-            withAnimation(.snappy) {
+            withAnimation(.spring(duration: 0.35, bounce: 0.2)) {
                 animate = true
                 animateTransition = true
             }
         }
         .onTapGesture {
-            withAnimation(.snappy) {
+            withAnimation(.spring(duration: 0.35, bounce: 0.2)) {
                 animateTransition = false
                 animate = false
                 selectedItem = nil
