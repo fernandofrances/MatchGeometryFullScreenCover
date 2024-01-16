@@ -23,7 +23,6 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             ScrollViewOffset { offset in
-                print(offset)
                 scrollOffset = offset
             } content: {
                 Header(selectedItem: $selectedItem)
@@ -224,33 +223,31 @@ struct DetailView<Content: View, DetailedContent: View>: View {
             } content: {
                 VStack {
                     if animateTransition {
-                        VStack {
-                            HStack(spacing: 12) {
-                                Text("\(Image(systemName: "chevron.left"))")
-                                    .font(.system(size: 12))
-                                    .padding(10)
-                                    .background(
-                                        Circle()
-                                            .stroke(lineWidth: 1)
-                                            .foregroundStyle(.gray.opacity(0.3))
-                                    )
-                                Text("Workout Activity")
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundStyle(.gray)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            .padding(.horizontal, 24)
-                            .offset(y: headerOffset)
-                            .transition(.move(edge: .top))
+                        HStack(spacing: 12) {
+                            Text("\(Image(systemName: "chevron.left"))")
+                                .font(.system(size: 12))
+                                .padding(10)
+                                .background(
+                                    Circle()
+                                        .stroke(lineWidth: 1)
+                                        .foregroundStyle(.gray.opacity(0.3))
+                                )
+                            Text("Workout Activity")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundStyle(.gray)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
+                        .padding(.horizontal, 24)
+                        .offset(y: headerOffset)
+                        .transition(.move(edge: .top))
                     }
                     
                     Rectangle()
                         .foregroundStyle(.clear)
-                        .frame(height: 300)
+                        .frame(height: 250)
                     
                     detailedContent
-                        .offset(y: animate ? 0 : UIScreen.main.bounds.size.height)
+                        .offset(y: animate ? detailOffset : UIScreen.main.bounds.size.height)
                         .padding()
                 }
             }
@@ -279,9 +276,12 @@ struct DetailView<Content: View, DetailedContent: View>: View {
         }
     }
     
+    var detailOffset: Double {
+        return max(0, scrollOffset) / 2
+    }
+    
     var headerOffset: Double {
-        let minContentOffset: Double = 0
-        return -max(minContentOffset, scrollOffset) / 2
+        return -max(0, scrollOffset) / 2
     }
     
     var contentOffset: Double {
