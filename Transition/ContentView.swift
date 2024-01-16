@@ -211,6 +211,17 @@ struct DetailView<Content: View, DetailedContent: View>: View {
         ZStack(alignment: .top) {
             ScrollViewOffset { offset in
                 scrollOffset = offset
+                print(offset)
+                if offset > 100 {
+                    withAnimation(.spring(duration: 0.35, bounce: 0.2)) {
+                        animateTransition = false
+                        animate = false
+                        selectedItem = nil
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
+                            dismiss()
+                        }
+                    }
+                }
             } content: {
                 VStack {
                     if animateTransition {
@@ -291,6 +302,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                 .padding(.top, 60)
                 .scaleEffect(contentScaleEffect, anchor: .leading)
                 .offset(y: contentOffset)
+                .allowsHitTesting(false)
             }
         }
         .background(
