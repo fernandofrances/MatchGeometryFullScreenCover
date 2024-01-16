@@ -212,23 +212,22 @@ struct DetailView<Content: View, DetailedContent: View>: View {
             ScrollViewOffset { offset in
                 scrollOffset = offset
                 print(offset)
-                if offset > 100 {
-                    withAnimation(.spring(duration: 0.35, bounce: 0.2)) {
-                        animateTransition = false
-                        animate = false
-                        selectedItem = nil
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
-                            dismiss()
-                        }
-                    }
+                if offset > 120 {
+                   dismissAnimation()
                 }
             } content: {
                 VStack {
                     if animateTransition {
                         HStack(spacing: 12) {
                             Text("\(Image(systemName: "chevron.left"))")
-                                .font(.system(size: 12))
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(chevronForegroundStyle)
                                 .padding(10)
+                                .background(
+                                    Circle()
+                                        .foregroundStyle(.black)
+                                        .opacity(chevronBackgroundOpacity)
+                                )
                                 .background(
                                     Circle()
                                         .stroke(lineWidth: 1)
@@ -236,6 +235,10 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                                 )
                                 .scaleEffect(chevronScale, anchor: .center)
                                 .rotationEffect(.degrees(chevronRotation), anchor: .center)
+                                .animation(.smooth, value: chevronForegroundStyle)
+                                .onTapGesture {
+                                   dismissAnimation()
+                                }
                             Text("Workout Activity")
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundStyle(.black)
@@ -312,29 +315,27 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                 .ignoresSafeArea()
         )
         .onAppear {
-            withAnimation(.spring(duration: 0.35, bounce: 0.2)) {
+            withAnimation(.spring(duration: 0.65, bounce: 0.2)) {
                 animate = true
                 animateTransition = true
             }
         }
-        .onTapGesture {
-            withAnimation(.spring(duration: 0.35, bounce: 0.2)) {
-                animateTransition = false
-                animate = false
-                selectedItem = nil
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
-                    dismiss()
-                }
-            }
-        }
+    }
+    
+    var chevronForegroundStyle: Color {
+        scrollOffset < 50 ? .black : .white
+    }
+    
+    var chevronBackgroundOpacity: Double {
+        return min(1, scrollOffset/100)
     }
     
     var headerHorizontalOffset: Double {
-        return max(0, min(6, scrollOffset/10))
+        return max(0, min(6, scrollOffset/20))
     }
     
     var chevronScale: Double {
-        return max(1, min(1.5, (1 + scrollOffset/160)))
+        return max(1, min(1.5, (1 + scrollOffset/150)))
     }
     
     var chevronRotation: Double {
@@ -342,7 +343,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
     }
     
     var titleOpacity: Double {
-        max(0.54, scrollOffset/50)
+        max(0.54, scrollOffset/60)
     }
     
     var shadowOpacity: Double {
@@ -370,6 +371,17 @@ struct DetailView<Content: View, DetailedContent: View>: View {
         let maxShrink: CGFloat = 100.0
         let scalingFactor = max(1 + min(scrollOffset/2, 0) / maxShrink, 0.8)
         return min(scalingFactor, 1.0)
+    }
+    
+    func dismissAnimation() {
+        withAnimation(.spring(duration: 0.65, bounce: 0.2)) {
+            animateTransition = false
+            animate = false
+            selectedItem = nil
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
+                dismiss()
+            }
+        }
     }
 }
 
