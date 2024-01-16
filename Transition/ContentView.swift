@@ -19,20 +19,25 @@ struct ContentView: View {
     @State var show: Bool = false
     @State var selectedItem: Int?
     @Namespace var namespace
+    @State var scrollOffset: Double = 0.0
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack {
-                    ForEach(0..<4) { index in
-                        OverView(
-                            namespace: namespace,
-                            id: index, 
-                            selectedItem: $selectedItem,
-                            show: $show
-                        ) {
-                            DummyChart()
-                        }
+            ScrollViewOffset { offset in
+                print(offset)
+                scrollOffset = offset
+            } content: {
+                Header(selectedItem: $selectedItem)
+                ForEach(0..<4) { index in
+                    OverView(
+                        namespace: namespace,
+                        id: index,
+                        selectedItem: $selectedItem,
+                        show: $show
+                    ) {
+                        DummyChart()
                     }
+                    .blur(radius: selectedItem != nil ? 5 : 0)
+                    .opacity(selectedItem != nil ? 0 : 1)
                 }
             }
             .customFullScreenCover(show: $show) {
@@ -57,8 +62,50 @@ struct ContentView: View {
     }
 }
 
-#Preview {
-    ContentView()
+struct Header: View {
+    @Binding var selectedItem: Int?
+    public init(selectedItem: Binding<Int?>) {
+        self._selectedItem = selectedItem
+    }
+    var body: some View {
+        VStack {
+            HStack(spacing: 12) {
+                Text("\(Image(systemName: "chevron.left"))")
+                    .font(.system(size: 12))
+                    .padding(10)
+                    .background(
+                        Circle()
+                            .stroke(lineWidth: 1)
+                            .foregroundStyle(.gray.opacity(0.3))
+                    )
+                Text("TimeLine")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(.gray)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Text("3:34pm")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(.gray)
+            }
+            .padding(.horizontal, 24)
+            
+            HStack {
+                Text("\(Text("Workout Activity").foregroundStyle(.black)) \(Text("• 24 min").foregroundStyle(.gray))").font(.system(size: 24, weight: .bold)).frame(maxWidth: .infinity, alignment: .leading)
+                
+                Text("\(Image(systemName: "ellipsis"))")
+                    .font(.system(size: 12))
+                    .padding(10)
+                    .background(
+                        Circle()
+                            .stroke(lineWidth: 1)
+                            .foregroundStyle(.gray.opacity(0.3))
+                    )
+            }
+            .padding(.horizontal, 24)
+        }
+        .offset(y: selectedItem != nil ? 20 : 0)
+        .blur(radius: selectedItem != nil ? 5 : 0)
+        .opacity(selectedItem != nil ? 0 : 1)
+    }
 }
 
 struct OverView<Content: View>: View {
@@ -145,6 +192,22 @@ struct DetailView<Content: View, DetailedContent: View>: View {
         ScrollView {
             VStack {
                 if animateTransition {
+                    HStack(spacing: 12) {
+                        Text("\(Image(systemName: "chevron.left"))")
+                            .font(.system(size: 12))
+                            .padding(10)
+                            .background(
+                                Circle()
+                                    .stroke(lineWidth: 1)
+                                    .foregroundStyle(.gray.opacity(0.3))
+                            )
+                        Text("Workout Activity")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(.gray)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(.horizontal, 24)
+                    .transition(.move(edge: .top))
                     ZStack(alignment: .bottom) {
                         content
                             .matchedGeometryEffect(id: "content" + "\(id)", in: namespace)
@@ -283,4 +346,9 @@ class CustomHostingView<Content: View>: UIHostingController<Content> {
         show = false
     }
     
+}
+
+
+#Preview {
+    ContentView()
 }
