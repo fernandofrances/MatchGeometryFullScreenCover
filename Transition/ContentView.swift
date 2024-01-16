@@ -29,16 +29,17 @@ struct ContentView: View {
                     .padding(.bottom, 32)
                 LazyVStack(spacing: 16) {
                     ForEach(0..<4) { index in
-                        OverView(
-                            namespace: namespace,
-                            id: index,
-                            selectedItem: $selectedItem,
-                            show: $show
-                        ) {
-                            DummyChart()
+                        ScrollView(.horizontal) {
+                            OverView(
+                                namespace: namespace,
+                                id: index,
+                                selectedItem: $selectedItem,
+                                show: $show
+                            ) {
+                                DummyChart()
+                            }
+                            .blur(radius: selectedItem != nil ? (selectedItem == index ? 0 : 5) : 0)
                         }
-                        .blur(radius: selectedItem != nil ? 5 : 0)
-                        .opacity(selectedItem != nil ? 0 : 1)
                     }
                 }
             }
@@ -151,7 +152,6 @@ struct OverView<Content: View>: View {
                 Text("More about why this matters...")
                     .matchedGeometryEffect(id: "subtitle" + "\(id)", in: namespace)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .opacity(selectedItem == nil ? 1 : 0)
             }
             .padding(.trailing, 40)
             .opacity(selectedItem == nil ? 1 : 0)
@@ -175,6 +175,7 @@ struct OverView<Content: View>: View {
             }
         }
         .padding(.horizontal, 16)
+        .frame(width: UIScreen.main.bounds.width)
     }
 }
 
@@ -252,7 +253,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                     
                     Rectangle()
                         .foregroundStyle(.clear)
-                        .frame(height: 300)
+                        .frame(height: 400)
                     
                     detailedContent
                         .offset(y: animate ? detailOffset : UIScreen.main.bounds.size.height)
@@ -263,28 +264,28 @@ struct DetailView<Content: View, DetailedContent: View>: View {
             
             Rectangle()
                 .foregroundStyle(
-                    .linearGradient(.init(colors: [.white, .white, .clear]), startPoint: .top, endPoint: .bottom)
+                    .linearGradient(.init(colors: [.red, .red, .clear]), startPoint: .top, endPoint: .bottom)
                 )
                 .frame(height: 360)
                 .ignoresSafeArea()
                 .opacity(gradientOpacity)
             
             if animateTransition {
-                ZStack(alignment: .bottom) {
+                VStack(spacing: 32) {
                     content
                         .matchedGeometryEffect(id: "content" + "\(id)", in: namespace)
                         .frame(height: 200)
-                    Text("At 40%, your effort maxed out below your potential")
-                        .font(.system(size: 22, weight: .bold))
-                        .matchedGeometryEffect(id: "title" + "\(id)", in: namespace)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.trailing, 40)
-                        .opacity(0)
-                    Text("More about why this matters...")
-                        .matchedGeometryEffect(id: "subtitle" + "\(id)", in: namespace)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.trailing, 40)
-                        .opacity(0)
+                    VStack(spacing: 16) {
+                        Text("At 40%, your effort maxed out below your potential")
+                            .font(.system(size: 22, weight: .bold))
+                            .matchedGeometryEffect(id: "title" + "\(id)", in: namespace)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Text("More about why this matters...")
+                            .matchedGeometryEffect(id: "subtitle" + "\(id)", in: namespace)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(.trailing, 40)
+                    .opacity(contentTextOpacity)
                 }
                 .padding()
                 .background(
@@ -303,7 +304,8 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                 )
                 .padding(.horizontal, 18)
                 .padding(.top, 60)
-                .scaleEffect(contentScaleEffect, anchor: .leading)
+                .scaleEffect(x: scaleEffectX, y: scaleEffectY, anchor: .leading)
+                //.scaleEffect(contentScaleEffect, anchor: .leading)
                 .offset(y: contentOffset)
                 .allowsHitTesting(false)
             }
@@ -346,12 +348,16 @@ struct DetailView<Content: View, DetailedContent: View>: View {
         max(0.54, scrollOffset/60)
     }
     
+    var contentTextOpacity: Double {
+        1 + scrollOffset/42
+    }
+    
     var shadowOpacity: Double {
-        -(scrollOffset/150)
+        min(1, -scrollOffset/42)
     }
     
     var gradientOpacity: Double {
-        -(scrollOffset/100)
+        min(1, -scrollOffset/84)
     }
     
     var detailOffset: Double {
@@ -363,14 +369,21 @@ struct DetailView<Content: View, DetailedContent: View>: View {
     }
     
     var contentOffset: Double {
-        let minContentOffset: Double = -40
-        return max(minContentOffset, scrollOffset)
+        return max(-42, scrollOffset)
     }
     
     var contentScaleEffect: Double {
         let maxShrink: CGFloat = 100.0
         let scalingFactor = max(1 + min(scrollOffset/2, 0) / maxShrink, 0.8)
         return min(scalingFactor, 1.0)
+    }
+    
+    var scaleEffectY: Double {
+        return 1
+    }
+    
+    var scaleEffectX: Double {
+        return 1
     }
     
     func dismissAnimation() {
