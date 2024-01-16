@@ -52,7 +52,7 @@ struct ContentView: View {
                             VStack {
                                 Text("Titulo otra vez")
                                     .frame(maxWidth: .infinity, alignment: .leading)
-                                Text("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus euismod quis purus nec feugiat. Sed mi erat, sagittis sed mollis nec, bibendum sit amet mauris. Sed pellentesque, sapien ut faucibus venenatis, sem leo cursus purus, in posuere sem odio id lacus. In eget fringilla nulla. Aenean a nisi sit amet metus feugiat ultricies luctus vel purus. Vivamus cursus lobortis leo vitae placerat. Vestibulum ut eleifend ipsum, at congue lectus. Nullam mollis purus at eros ultricies lobortis. Pellentesque cursus id ante elementum vehicula")
+                                Text("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus euismod quis purus nec feugiat. Sed mi erat, sagittis sed mollis nec, bibendum sit amet mauris. Sed pellentesque, sapien ut faucibus venenatis, sem leo cursus purus, in posuere sem odio id lacus. In eget fringilla nulla. Aenean a nisi sit amet metus feugiat ultricies luctus vel purus. Vivamus cursus lobortis leo vitae placerat. Vestibulum ut eleifend ipsum, at congue lectus. Nullam mollis purus at eros ultricies lobortis. Pellentesque cursus id ante elementum vehicula Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus euismod quis purus nec feugiat. Sed mi erat, sagittis sed mollis nec, bibendum sit amet mauris. Sed pellentesque, sapien ut faucibus venenatis, sem leo cursus purus, in posuere sem odio id lacus. In eget fringilla nulla. Aenean a nisi sit amet metus feugiat ultricies luctus vel purus. Vivamus cursus lobortis leo vitae placerat. Vestibulum ut eleifend ipsum, at congue lectus. Nullam mollis purus at eros ultricies lobortis. Pellentesque cursus id ante elementum vehicula")
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
                         })
@@ -167,6 +167,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
     
     @State var animate: Bool = false
     @State var animateTransition: Bool = false
+    @State var scrollOffset: Double = 0.0
     
     @Environment(\.dismiss) private var dismiss
     
@@ -189,52 +190,69 @@ struct DetailView<Content: View, DetailedContent: View>: View {
     }
     
     var body: some View {
-        ScrollView {
-            VStack {
-                if animateTransition {
-                    HStack(spacing: 12) {
-                        Text("\(Image(systemName: "chevron.left"))")
-                            .font(.system(size: 12))
-                            .padding(10)
-                            .background(
-                                Circle()
-                                    .stroke(lineWidth: 1)
-                                    .foregroundStyle(.gray.opacity(0.3))
-                            )
-                        Text("Workout Activity")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundStyle(.gray)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .padding(.horizontal, 24)
-                    .transition(.move(edge: .top))
-                    ZStack(alignment: .bottom) {
-                        content
-                            .matchedGeometryEffect(id: "content" + "\(id)", in: namespace)
-                            .frame(height: 200)
-                        Text("Titulo")
-                            .matchedGeometryEffect(id: "title" + "\(id)", in: namespace)
-                            .transition(.opacity)
-                            .opacity(0)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        Text("Subtitlo")
-                            .matchedGeometryEffect(id: "subtitle" + "\(id)", in: namespace)
-                            .opacity(0)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 18)
-                            .stroke(lineWidth: 1)
-                            .foregroundStyle(.gray.opacity(0.3))
-                            .matchedGeometryEffect(id: "\(id)", in: namespace)
-                    )
-                    .padding()
+        ZStack(alignment: .top) {
+            if animateTransition {
+                ZStack(alignment: .bottom) {
+                    content
+                        .matchedGeometryEffect(id: "content" + "\(id)", in: namespace)
+                        .frame(height: 200)
+                    Text("Titulo")
+                        .matchedGeometryEffect(id: "title" + "\(id)", in: namespace)
+                        .transition(.opacity)
+                        .opacity(0)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text("Subtitlo")
+                        .matchedGeometryEffect(id: "subtitle" + "\(id)", in: namespace)
+                        .opacity(0)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                
-                detailedContent
-                    .offset(y: animate ? 0 : UIScreen.main.bounds.size.height)
-                    .padding()
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(lineWidth: 1)
+                        .foregroundStyle(.gray.opacity(0.3))
+                        .matchedGeometryEffect(id: "\(id)", in: namespace)
+                )
+                .padding(.horizontal, 18)
+                .padding(.top, 60)
+                .scaleEffect(scaleEffectForContent, anchor: .leading)
+                .offset(y: contentOffset)
+            }
+            
+            ScrollViewOffset { offset in
+                scrollOffset = offset
+            } content: {
+                VStack {
+                    if animateTransition {
+                        VStack {
+                            HStack(spacing: 12) {
+                                Text("\(Image(systemName: "chevron.left"))")
+                                    .font(.system(size: 12))
+                                    .padding(10)
+                                    .background(
+                                        Circle()
+                                            .stroke(lineWidth: 1)
+                                            .foregroundStyle(.gray.opacity(0.3))
+                                    )
+                                Text("Workout Activity")
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundStyle(.gray)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .padding(.horizontal, 24)
+                            .offset(y: headerOffset)
+                            .transition(.move(edge: .top))
+                        }
+                    }
+                    
+                    Rectangle()
+                        .foregroundStyle(.clear)
+                        .frame(height: 300)
+                    
+                    detailedContent
+                        .offset(y: animate ? 0 : UIScreen.main.bounds.size.height)
+                        .padding()
+                }
             }
         }
         .background(
@@ -259,6 +277,22 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                 }
             }
         }
+    }
+    
+    var headerOffset: Double {
+        let minContentOffset: Double = 0
+        return -max(minContentOffset, scrollOffset) / 2
+    }
+    
+    var contentOffset: Double {
+        let minContentOffset: Double = -40
+        return max(minContentOffset, scrollOffset)
+    }
+    
+    var scaleEffectForContent: Double {
+        let maxShrink: CGFloat = 100.0
+        let scalingFactor = max(1 + min(scrollOffset/2, 0) / maxShrink, 0.8)
+        return min(scalingFactor, 1.0)
     }
 }
 
