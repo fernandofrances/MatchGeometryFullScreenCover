@@ -18,16 +18,12 @@ struct DummyChart: View {
 struct ContentView: View {
     @State var selectedItem: Int?
     @Namespace var namespace
-    @State var scrollOffset: Double = 0.0
-    @State var show: Bool = false
     var body: some View {
         ZStack(alignment: .top) {
-            ScrollViewOffset { offset in
-                scrollOffset = offset
-            } content: {
-                Header(selectedItem: $selectedItem)
-                    .padding(.bottom, 32)
+            ScrollView {
                 LazyVStack(spacing: 16) {
+                    Header(selectedItem: $selectedItem)
+                        .padding(.bottom, 32)
                     ForEach(0..<4) { index in
                         ScrollView(.horizontal) {
                             OverView(
@@ -44,7 +40,7 @@ struct ContentView: View {
                                     selectedItem = index
                                 }
                             }
-                        }
+                        }.scrollClipDisabled()
                     }
                 }
             }
@@ -304,7 +300,6 @@ struct DetailView<Content: View, DetailedContent: View>: View {
         .background(
             Rectangle()
                 .foregroundStyle(.white)
-                .opacity(animate ? 1 : 0)
                 .ignoresSafeArea()
         )
         .onAppear {
@@ -383,93 +378,6 @@ struct DetailView<Content: View, DetailedContent: View>: View {
         }
     }
 }
-
-
-
-extension View {
-    @ViewBuilder func customFullScreenCover<Content: View>(show: Binding<Bool>, @ViewBuilder content: @escaping () -> Content) -> some View {
-        self.modifier(HelperCustomFullScreenCoverView(show: show, overlay: content()))
-    }
-}
-struct HelperCustomFullScreenCoverView<Overlay: View>: ViewModifier {
-    @Binding var show: Bool
-    var overlay: Overlay
-    @State private var hostView: CustomHostingView<Overlay>?
-    @State private var parentController: UIViewController?
-    
-    func body(content: Content) -> some View {
-        content
-            .background(
-                ExtractSwiftUIViewParentController(content: overlay, hostView: $hostView, parentController: { viewController in
-                    parentController = viewController
-                })
-            )
-            .onAppear {
-                hostView = CustomHostingView(show: $show, rootView: overlay)
-            }
-            .onChange(of: show) { _, newValue in
-                if newValue {
-                    if let hostView {
-                        hostView.modalPresentationStyle = .overCurrentContext
-                        hostView.modalTransitionStyle = .crossDissolve
-                        hostView.view.backgroundColor = .clear
-                        
-                        parentController?.present(hostView, animated: false)
-                    }
-                } else {
-                    hostView?.dismiss(animated: false)
-                }
-            }
-    }
-}
-struct ExtractSwiftUIViewParentController<Content: View>: UIViewRepresentable {
-    var content: Content
-    @Binding var hostView: CustomHostingView<Content>?
-    var parentController: (UIViewController?) -> ()
-    
-    func makeUIView(context: Context) -> some UIView {
-        return UIView()
-    }
-    
-    func updateUIView(_ uiView: UIViewType, context: Context) {
-        hostView?.rootView = content
-        DispatchQueue.main.async {
-            parentController(uiView.superview?.superview?.parentController)
-        }
-    }
-}
-public extension UIView {
-    var parentController: UIViewController? {
-        var responder = self.next
-        while responder != nil {
-            if let viewController = responder as? UIViewController {
-                return viewController
-            }
-            responder = responder?.next
-        }
-        
-        return nil
-    }
-}
-class CustomHostingView<Content: View>: UIHostingController<Content> {
-    @Binding var show: Bool
-    
-    init(show: Binding<Bool>, rootView: Content) {
-        self._show = show
-        super.init(rootView: rootView)
-    }
-    
-    required dynamic init?(coder aDecoder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-    
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(false)
-        show = false
-    }
-    
-}
-
 
 #Preview {
     ContentView()
