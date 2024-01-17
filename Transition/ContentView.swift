@@ -45,7 +45,7 @@ struct ContentView: View {
                 }
             }
             
-            if let selectedItem {
+            if let selectedItem = selectedItem {
                 DetailView(
                     id: selectedItem,
                     namespace: namespace,
@@ -54,7 +54,7 @@ struct ContentView: View {
                         DummyChart()
                     }, detailedContent: {
                         VStack(spacing: 24) {
-                            Text("At 40%, your effort maxed out below your potential")
+                            Text("What is workload, and why does it matter?")
                                 .font(.system(size: 24, weight: .bold))
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             Text("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus euismod quis purus nec feugiat. Sed mi erat, sagittis sed mollis nec, bibendum sit amet mauris. Sed pellentesque, sapien ut faucibus venenatis, sem leo cursus purus, in posuere sem odio id lacus. In eget fringilla nulla. Aenean a nisi sit amet metus feugiat ultricies luctus vel purus. Vivamus cursus lobortis leo vitae placerat. Vestibulum ut eleifend ipsum, at congue lectus. Nullam mollis purus at eros ultricies lobortis. Pellentesque cursus id ante elementum vehicula Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus euismod quis purus nec feugiat. Sed mi erat, sagittis sed mollis nec, bibendum sit amet mauris. Sed pellentesque, sapien ut faucibus venenatis, sem leo cursus purus, in posuere sem odio id lacus. In eget fringilla nulla. Aenean a nisi sit amet metus feugiat ultricies luctus vel purus. Vivamus cursus lobortis leo vitae placerat. Vestibulum ut eleifend ipsum, at congue lectus. Nullam mollis purus at eros ultricies lobortis. Pellentesque cursus id ante elementum vehicula")
@@ -202,7 +202,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
             ScrollViewOffset { offset in
                 scrollOffset = offset
                 print(offset)
-                if offset > 120 {
+                if offset > 130 {
                     dismissAnimation()
                 }
             } content: {
@@ -234,10 +234,11 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                                 .foregroundStyle(.black)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .opacity(titleOpacity)
-                                .offset(x: headerHorizontalOffset)
-                    }
+                                .padding(.leading, headerHorizontalOffset)
+                        }
                         .offset(x: headerHorizontalOffset, y: headerVerticalOffset)
                         .transition(.move(edge: .top))
+                        .padding(.horizontal, 24)
                     }
                     
                     Rectangle()
@@ -246,8 +247,9 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                     
                     detailedContent
                         .offset(y: animate ? detailOffset : UIScreen.main.bounds.size.height)
+                        .padding(.horizontal, 24)
                 }
-                .padding(.horizontal, 18)
+                
             }
             .contentMargins(.bottom, 60, for: .scrollContent)
             
@@ -263,7 +265,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                 content
                     .matchedGeometryEffect(id: "content" + "\(id)", in: namespace)
                     .frame(height: 200)
-                VStack(spacing: 16) {
+                ZStack {
                     Text("At 40%, your effort maxed out below your potential")
                         .font(.system(size: 22, weight: .bold))
                         .matchedGeometryEffect(id: "title" + "\(id)", in: namespace)
@@ -271,6 +273,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                     Text("More about why this matters...")
                         .matchedGeometryEffect(id: "subtitle" + "\(id)", in: namespace)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .opacity(0)
                 }
                 .padding(.trailing, 40)
                 .opacity(contentTextOpacity)
@@ -290,7 +293,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
             .shadow(
                 color: .gray.opacity(shadowOpacity), radius: 10
             )
-            .padding(.horizontal, 18)
+            .padding(.horizontal, 16)
             .padding(.top, 60)
             .scaleEffect(x: scaleEffectX, y: scaleEffectY, anchor: .leading)
             //.scaleEffect(contentScaleEffect, anchor: .leading)
@@ -303,7 +306,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                 .ignoresSafeArea()
         )
         .onAppear {
-            withAnimation(.spring(duration: 0.65, bounce: 0.2)) {
+            withAnimation(.spring(duration: 0.55, bounce: 0.2)) {
                 animate = true
             }
         }
@@ -318,7 +321,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
     }
     
     var headerHorizontalOffset: Double {
-        return max(0, min(6, scrollOffset/20))
+        return max(0, min(10, scrollOffset/10))
     }
     
     var chevronScale: Double {
@@ -372,7 +375,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
     }
     
     func dismissAnimation() {
-        withAnimation(.spring(duration: 0.65, bounce: 0.2)) {
+        withAnimation(.spring(duration: 0.55, bounce: 0.2)) {
             animate = false
             selectedItem = nil
         }
