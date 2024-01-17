@@ -149,6 +149,7 @@ struct OverView<Content: View>: View {
                 Text("More about why this matters...")
                     .matchedGeometryEffect(id: "subtitle" + "\(id)", in: namespace)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .opacity(selectedItem != nil ? 0 : 1)
             }
             .padding(.trailing, 40)
         }
@@ -276,7 +277,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                         .opacity(0)
                 }
                 .padding(.trailing, 40)
-                .opacity(contentTextOpacity)
+                //.opacity(contentTextOpacity)
             }
             .padding()
             .background(
@@ -295,7 +296,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
             )
             .padding(.horizontal, 16)
             .padding(.top, 60)
-            .scaleEffect(x: scaleEffectX, y: scaleEffectY, anchor: .leading)
+            .scaleEffect(contentScaleEffect, anchor: .leading)
             //.scaleEffect(contentScaleEffect, anchor: .leading)
             .offset(y: contentOffset)
             .allowsHitTesting(false)
@@ -364,14 +365,6 @@ struct DetailView<Content: View, DetailedContent: View>: View {
         let maxShrink: CGFloat = 100.0
         let scalingFactor = max(1 + min(scrollOffset/2, 0) / maxShrink, 0.8)
         return min(scalingFactor, 1.0)
-    }
-    
-    var scaleEffectY: Double {
-        return 1
-    }
-    
-    var scaleEffectX: Double {
-        return 1
     }
     
     func dismissAnimation() {
