@@ -16,12 +16,12 @@ struct DummyChart: View {
 }
 
 struct ContentView: View {
-    @State var show: Bool = false
     @State var selectedItem: Int?
     @Namespace var namespace
     @State var scrollOffset: Double = 0.0
+    @State var show: Bool = false
     var body: some View {
-        NavigationStack {
+        ZStack(alignment: .top) {
             ScrollViewOffset { offset in
                 scrollOffset = offset
             } content: {
@@ -33,36 +33,40 @@ struct ContentView: View {
                             OverView(
                                 namespace: namespace,
                                 id: index,
-                                selectedItem: $selectedItem,
-                                show: $show
+                                selectedItem: $selectedItem
                             ) {
                                 DummyChart()
                             }
                             .blur(radius: selectedItem != nil ? (selectedItem == index ? 0 : 5) : 0)
+                            .opacity(selectedItem != nil ? (selectedItem == index ? 1 : 0) : 1)
+                            .onTapGesture {
+                                withAnimation(.spring(duration: 0.55, bounce: 0.2)) {
+                                    selectedItem = index
+                                }
+                            }
                         }
                     }
                 }
             }
-            .customFullScreenCover(show: $show) {
-                if let selectedItem {
-                    DetailView(
-                        id: selectedItem,
-                        namespace: namespace,
-                        selectedItem: $selectedItem,
-                        content: {
-                            DummyChart()
-                        }, detailedContent: {
-                            VStack(spacing: 24) {
-                                Text("At 40%, your effort maxed out below your potential")
-                                    .font(.system(size: 24, weight: .bold))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                Text("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus euismod quis purus nec feugiat. Sed mi erat, sagittis sed mollis nec, bibendum sit amet mauris. Sed pellentesque, sapien ut faucibus venenatis, sem leo cursus purus, in posuere sem odio id lacus. In eget fringilla nulla. Aenean a nisi sit amet metus feugiat ultricies luctus vel purus. Vivamus cursus lobortis leo vitae placerat. Vestibulum ut eleifend ipsum, at congue lectus. Nullam mollis purus at eros ultricies lobortis. Pellentesque cursus id ante elementum vehicula Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus euismod quis purus nec feugiat. Sed mi erat, sagittis sed mollis nec, bibendum sit amet mauris. Sed pellentesque, sapien ut faucibus venenatis, sem leo cursus purus, in posuere sem odio id lacus. In eget fringilla nulla. Aenean a nisi sit amet metus feugiat ultricies luctus vel purus. Vivamus cursus lobortis leo vitae placerat. Vestibulum ut eleifend ipsum, at congue lectus. Nullam mollis purus at eros ultricies lobortis. Pellentesque cursus id ante elementum vehicula")
-                                    .font(.system(size: 16, weight: .regular))
-                                    .lineSpacing(8)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        })
-                }
+            
+            if let selectedItem {
+                DetailView(
+                    id: selectedItem,
+                    namespace: namespace,
+                    selectedItem: $selectedItem,
+                    content: {
+                        DummyChart()
+                    }, detailedContent: {
+                        VStack(spacing: 24) {
+                            Text("At 40%, your effort maxed out below your potential")
+                                .font(.system(size: 24, weight: .bold))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            Text("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus euismod quis purus nec feugiat. Sed mi erat, sagittis sed mollis nec, bibendum sit amet mauris. Sed pellentesque, sapien ut faucibus venenatis, sem leo cursus purus, in posuere sem odio id lacus. In eget fringilla nulla. Aenean a nisi sit amet metus feugiat ultricies luctus vel purus. Vivamus cursus lobortis leo vitae placerat. Vestibulum ut eleifend ipsum, at congue lectus. Nullam mollis purus at eros ultricies lobortis. Pellentesque cursus id ante elementum vehicula Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus euismod quis purus nec feugiat. Sed mi erat, sagittis sed mollis nec, bibendum sit amet mauris. Sed pellentesque, sapien ut faucibus venenatis, sem leo cursus purus, in posuere sem odio id lacus. In eget fringilla nulla. Aenean a nisi sit amet metus feugiat ultricies luctus vel purus. Vivamus cursus lobortis leo vitae placerat. Vestibulum ut eleifend ipsum, at congue lectus. Nullam mollis purus at eros ultricies lobortis. Pellentesque cursus id ante elementum vehicula")
+                                .font(.system(size: 16, weight: .regular))
+                                .lineSpacing(8)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    })
             }
         }
     }
@@ -122,20 +126,17 @@ struct OverView<Content: View>: View {
     var namespace: Namespace.ID
     var id: Int
     @Binding var selectedItem: Int?
-    @Binding var show: Bool
     @ViewBuilder let content: Content
     
     public init(
         namespace: Namespace.ID,
         id: Int,
         selectedItem: Binding<Int?>,
-        show: Binding<Bool>,
         @ViewBuilder content: () -> Content
     ) {
         self.namespace = namespace
         self.id = id
         self._selectedItem = selectedItem
-        self._show = show
         self.content = content()
     }
     
@@ -154,7 +155,6 @@ struct OverView<Content: View>: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(.trailing, 40)
-            .opacity(selectedItem == nil ? 1 : 0)
         }
         .padding(24)
         .background(
@@ -168,12 +168,6 @@ struct OverView<Content: View>: View {
                         .foregroundStyle(.gray.opacity(0.3))
                 )
         )
-        .onTapGesture {
-            withAnimation(.spring(duration: 0.35, bounce: 0.2)) {
-                selectedItem = id
-                show.toggle()
-            }
-        }
         .padding(.horizontal, 16)
         .frame(width: UIScreen.main.bounds.width)
     }
@@ -185,7 +179,6 @@ struct DetailView<Content: View, DetailedContent: View>: View {
     var id: Int
     
     @State var animate: Bool = false
-    @State var animateTransition: Bool = false
     @State var scrollOffset: Double = 0.0
     
     @Environment(\.dismiss) private var dismiss
@@ -214,11 +207,11 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                 scrollOffset = offset
                 print(offset)
                 if offset > 120 {
-                   dismissAnimation()
+                    dismissAnimation()
                 }
             } content: {
                 VStack {
-                    if animateTransition {
+                    if animate {
                         HStack(spacing: 12) {
                             Text("\(Image(systemName: "chevron.left"))")
                                 .font(.system(size: 12, weight: .semibold))
@@ -238,7 +231,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                                 .rotationEffect(.degrees(chevronRotation), anchor: .center)
                                 .animation(.smooth, value: chevronForegroundStyle)
                                 .onTapGesture {
-                                   dismissAnimation()
+                                    dismissAnimation()
                                 }
                             Text("Workout Activity")
                                 .font(.system(size: 18, weight: .bold))
@@ -246,7 +239,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .opacity(titleOpacity)
                                 .offset(x: headerHorizontalOffset)
-                        }
+                    }
                         .offset(x: headerHorizontalOffset, y: headerVerticalOffset)
                         .transition(.move(edge: .top))
                     }
@@ -270,45 +263,43 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                 .ignoresSafeArea()
                 .opacity(gradientOpacity)
             
-            if animateTransition {
-                VStack(spacing: 32) {
-                    content
-                        .matchedGeometryEffect(id: "content" + "\(id)", in: namespace)
-                        .frame(height: 200)
-                    VStack(spacing: 16) {
-                        Text("At 40%, your effort maxed out below your potential")
-                            .font(.system(size: 22, weight: .bold))
-                            .matchedGeometryEffect(id: "title" + "\(id)", in: namespace)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        Text("More about why this matters...")
-                            .matchedGeometryEffect(id: "subtitle" + "\(id)", in: namespace)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .padding(.trailing, 40)
-                    .opacity(contentTextOpacity)
+            VStack(spacing: 32) {
+                content
+                    .matchedGeometryEffect(id: "content" + "\(id)", in: namespace)
+                    .frame(height: 200)
+                VStack(spacing: 16) {
+                    Text("At 40%, your effort maxed out below your potential")
+                        .font(.system(size: 22, weight: .bold))
+                        .matchedGeometryEffect(id: "title" + "\(id)", in: namespace)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text("More about why this matters...")
+                        .matchedGeometryEffect(id: "subtitle" + "\(id)", in: namespace)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 18)
-                        .matchedGeometryEffect(id: "background" + "\(id)", in: namespace)
-                        .foregroundStyle(.white)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 18)
-                                .stroke(lineWidth: 1)
-                                .matchedGeometryEffect(id: "backgroundStroke" + "\(id)", in: namespace)
-                                .foregroundStyle(.gray.opacity(0.3))
-                        )
-                )
-                .shadow(
-                    color: .gray.opacity(shadowOpacity), radius: 10
-                )
-                .padding(.horizontal, 18)
-                .padding(.top, 60)
-                .scaleEffect(x: scaleEffectX, y: scaleEffectY, anchor: .leading)
-                //.scaleEffect(contentScaleEffect, anchor: .leading)
-                .offset(y: contentOffset)
-                .allowsHitTesting(false)
+                .padding(.trailing, 40)
+                .opacity(contentTextOpacity)
             }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 18)
+                    .matchedGeometryEffect(id: "background" + "\(id)", in: namespace)
+                    .foregroundStyle(.white)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18)
+                            .stroke(lineWidth: 1)
+                            .matchedGeometryEffect(id: "backgroundStroke" + "\(id)", in: namespace)
+                            .foregroundStyle(.gray.opacity(0.3))
+                    )
+            )
+            .shadow(
+                color: .gray.opacity(shadowOpacity), radius: 10
+            )
+            .padding(.horizontal, 18)
+            .padding(.top, 60)
+            .scaleEffect(x: scaleEffectX, y: scaleEffectY, anchor: .leading)
+            //.scaleEffect(contentScaleEffect, anchor: .leading)
+            .offset(y: contentOffset)
+            .allowsHitTesting(false)
         }
         .background(
             Rectangle()
@@ -319,7 +310,6 @@ struct DetailView<Content: View, DetailedContent: View>: View {
         .onAppear {
             withAnimation(.spring(duration: 0.65, bounce: 0.2)) {
                 animate = true
-                animateTransition = true
             }
         }
     }
@@ -388,12 +378,8 @@ struct DetailView<Content: View, DetailedContent: View>: View {
     
     func dismissAnimation() {
         withAnimation(.spring(duration: 0.65, bounce: 0.2)) {
-            animateTransition = false
             animate = false
             selectedItem = nil
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
-                dismiss()
-            }
         }
     }
 }
