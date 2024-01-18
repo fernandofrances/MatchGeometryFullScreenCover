@@ -177,6 +177,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
     
     @State var animate: Bool = false
     @State var scrollOffset: Double = 0.0
+    @State var contentHeight: Double = 0.0
     
     @Environment(\.dismiss) private var dismiss
     
@@ -244,7 +245,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                     
                     Rectangle()
                         .foregroundStyle(.clear)
-                        .frame(height: 360)
+                        .frame(height: contentHeight)
                     
                     detailedContent
                         .offset(y: animate ? detailOffset : UIScreen.main.bounds.size.height)
@@ -263,6 +264,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                 .frame(height: 360)
                 .ignoresSafeArea()
                 .opacity(gradientOpacity)
+            
             
             ZStack(alignment: .top) {
                 content
@@ -287,21 +289,26 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                             .padding(.bottom, 24)
                     }
                     .padding(.trailing, 40)
-                    .clipped() // IF scrolloffset < 0
+                    //.clipped() // IF scrolloffset < 0
                     .opacity(0.75)
                 }
             }
             .padding([.horizontal, .top], 24)
             .background(
-                RoundedRectangle(cornerRadius: 18)
-                    .matchedGeometryEffect(id: "background" + "\(id)", in: namespace)
-                    .foregroundStyle(.white)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18)
-                            .stroke(lineWidth: 1)
-                            .matchedGeometryEffect(id: "backgroundStroke" + "\(id)", in: namespace)
-                            .foregroundStyle(.gray.opacity(0.3))
-                    )
+                GeometryReader { proxy in
+                    RoundedRectangle(cornerRadius: 18)
+                        .matchedGeometryEffect(id: "background" + "\(id)", in: namespace)
+                        .foregroundStyle(.white)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18)
+                                .stroke(lineWidth: 1)
+                                .matchedGeometryEffect(id: "backgroundStroke" + "\(id)", in: namespace)
+                                .foregroundStyle(.gray.opacity(0.3))
+                        )
+                        .onAppear {
+                            contentHeight = proxy.size.height + 32
+                        }
+                }
             )
             .shadow(
                 color: .gray.opacity(shadowOpacity), radius: 10
