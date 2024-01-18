@@ -244,7 +244,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                     
                     Rectangle()
                         .foregroundStyle(.clear)
-                        .frame(height: 400)
+                        .frame(height: 360)
                     
                     detailedContent
                         .offset(y: animate ? detailOffset : UIScreen.main.bounds.size.height)
@@ -253,6 +253,8 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                 
             }
             .contentMargins(.bottom, 60, for: .scrollContent)
+            .scrollClipDisabled()
+            .padding(.top, 18)
             
             Rectangle()
                 .foregroundStyle(
@@ -262,24 +264,34 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                 .ignoresSafeArea()
                 .opacity(gradientOpacity)
             
-            VStack(spacing: 32) {
+            ZStack(alignment: .top) {
                 content
                     .matchedGeometryEffect(id: "content" + "\(id)", in: namespace)
                     .frame(height: 200)
-                ZStack {
-                    Text("At 40%, your effort maxed out below your potential")
-                        .font(.system(size: 22, weight: .bold))
-                        .matchedGeometryEffect(id: "title" + "\(id)", in: namespace)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Text("More about why this matters...")
-                        .matchedGeometryEffect(id: "subtitle" + "\(id)", in: namespace)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .opacity(0)
+                VStack(spacing: 32) {
+                    Color
+                        .clear
+                        .frame(height: dummyBackgroundHeight)
+                    ZStack {
+                        Text("At 40%, your effort maxed out below your potential")
+                            .font(.system(size: 22, weight: .bold))
+                            .matchedGeometryEffect(id: "title" + "\(id)", in: namespace)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .opacity(contentTextOpacity)
+                            .offset(y: contentTextOffset)
+                            .padding(.bottom, 24)
+                        Text("More about why this matters...")
+                            .matchedGeometryEffect(id: "subtitle" + "\(id)", in: namespace)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .opacity(0)
+                            .padding(.bottom, 24)
+                    }
+                    .padding(.trailing, 40)
+                    .clipped() // IF scrolloffset < 0
+                    .opacity(0.75)
                 }
-                .padding(.trailing, 40)
-                //.opacity(contentTextOpacity)
             }
-            .padding()
+            .padding([.horizontal, .top], 24)
             .background(
                 RoundedRectangle(cornerRadius: 18)
                     .matchedGeometryEffect(id: "background" + "\(id)", in: namespace)
@@ -295,9 +307,8 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                 color: .gray.opacity(shadowOpacity), radius: 10
             )
             .padding(.horizontal, 16)
-            .padding(.top, 60)
+            .padding(.top, 78)
             .scaleEffect(contentScaleEffect, anchor: .leading)
-            //.scaleEffect(contentScaleEffect, anchor: .leading)
             .offset(y: contentOffset)
             .allowsHitTesting(false)
         }
@@ -311,6 +322,10 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                 animate = true
             }
         }
+    }
+    
+    var dummyBackgroundHeight: Double {
+        min(200, max(110,(200 + scrollOffset*5)))
     }
     
     var chevronForegroundStyle: Color {
@@ -338,11 +353,15 @@ struct DetailView<Content: View, DetailedContent: View>: View {
     }
     
     var contentTextOpacity: Double {
-        1 + scrollOffset/42
+        1 + scrollOffset/10
+    }
+    
+    var contentTextOffset: Double {
+        return max(0, -scrollOffset*6)
     }
     
     var shadowOpacity: Double {
-        min(1, -scrollOffset/42)
+        min(1, -scrollOffset/30)
     }
     
     var gradientOpacity: Double {
@@ -362,9 +381,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
     }
     
     var contentScaleEffect: Double {
-        let maxShrink: CGFloat = 100.0
-        let scalingFactor = max(1 + min(scrollOffset/2, 0) / maxShrink, 0.8)
-        return min(scalingFactor, 1.0)
+        return min(1, max(0.9, 1 + scrollOffset/200))
     }
     
     func dismissAnimation() {
