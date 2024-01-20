@@ -15,6 +15,8 @@
 		E00644FC2B55515800D9F075 /* TransitionUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00644FB2B55515800D9F075 /* TransitionUITests.swift */; };
 		E00644FE2B55515800D9F075 /* TransitionUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00644FD2B55515800D9F075 /* TransitionUITestsLaunchTests.swift */; };
 		E0180C772B566FB700B68A91 /* ScrollViewOffset.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0180C762B566FB700B68A91 /* ScrollViewOffset.swift */; };
+		E0A3D7402B5BEA3D003BA562 /* DummyChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0A3D73F2B5BEA3D003BA562 /* DummyChart.swift */; };
+		E0B67E3E2B5BC579003C52B2 /* InfoTickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0B67E3D2B5BC579003C52B2 /* InfoTickerView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -47,6 +49,8 @@
 		E00644FB2B55515800D9F075 /* TransitionUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransitionUITests.swift; sourceTree = "<group>"; };
 		E00644FD2B55515800D9F075 /* TransitionUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransitionUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		E0180C762B566FB700B68A91 /* ScrollViewOffset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollViewOffset.swift; sourceTree = "<group>"; };
+		E0A3D73F2B5BEA3D003BA562 /* DummyChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DummyChart.swift; sourceTree = "<group>"; };
+		E0B67E3D2B5BC579003C52B2 /* InfoTickerView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = InfoTickerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -99,6 +103,8 @@
 			children = (
 				E00644DF2B55515700D9F075 /* TransitionApp.swift */,
 				E00644E12B55515700D9F075 /* ContentView.swift */,
+				E0B67E3D2B5BC579003C52B2 /* InfoTickerView.swift */,
+				E0A3D73F2B5BEA3D003BA562 /* DummyChart.swift */,
 				E00644E32B55515700D9F075 /* Assets.xcassets */,
 				E00644E52B55515700D9F075 /* Transition.entitlements */,
 				E00644E62B55515700D9F075 /* Preview Content */,
@@ -262,9 +268,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E0B67E3E2B5BC579003C52B2 /* InfoTickerView.swift in Sources */,
 				E00644E22B55515700D9F075 /* ContentView.swift in Sources */,
 				E0180C772B566FB700B68A91 /* ScrollViewOffset.swift in Sources */,
 				E00644E02B55515700D9F075 /* TransitionApp.swift in Sources */,
+				E0A3D7402B5BEA3D003BA562 /* DummyChart.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

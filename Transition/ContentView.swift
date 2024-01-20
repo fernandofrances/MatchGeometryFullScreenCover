@@ -2,15 +2,56 @@ import SwiftUI
 import Charts
 
 struct DummyChart: View {
+    @GestureState private var selectedElement: Int?
+    let items: [Int]
+    init() {
+        var values = [Int]()
+        for i in 0..<50 {
+            values.append(i)
+        }
+        self.items = values
+    }
     var body: some View {
         Chart {
-            ForEach(0..<50, id: \.self) { index in
+            ForEach(items, id: \.self) { index in
                 LineMark(x: .value("X", index),
                          y: .value("Y", index))
                 .interpolationMethod(.catmullRom)
             }
-            PointMark(x: .value("X", 20),
-                      y: .value("Y", 10))
+            PointMark(
+                x: .value("X", selectedElement ?? 0),
+                y: .value("Y", selectedElement ?? 0)
+            )
+            .symbol(Circle()
+                .strokeBorder(style: .init(lineWidth: 1))
+            )
+            .symbolSize(CGSize(width: 7, height: 7))
+            .foregroundStyle(.blue)
+        }
+        .chartOverlay(content: spatialTapOverlay)
+    }
+    
+    private func spatialTapOverlay(_ proxy: ChartProxy) -> some View {
+        GeometryReader { geo in
+            Rectangle().fill(.clear).contentShape(Rectangle())
+                .gesture(
+                    SpatialTapGesture()
+                        .sequenced(before: DragGesture(minimumDistance: 10)
+                                .updating($selectedElement, body: { value, state, _ in
+                                    let origin = geo[proxy.plotAreaFrame].origin
+                                    let location = CGPoint(
+                                        x: value.location.x - origin.x,
+                                        y: value.location.y - origin.y
+                                    )
+                                    
+                                    let (position, workload) = proxy.value(at: location, as: (Int, Double).self) ?? (0, 0)
+                                    let newSelectedElement = min(items.count - 1, max(0, position))
+                                    if newSelectedElement != selectedElement {
+                                        state = newSelectedElement
+                                    }
+                                })
+                        )
+                )
         }
     }
 }
@@ -23,7 +64,7 @@ struct ContentView: View {
             ScrollView {
                 LazyVStack(spacing: 16) {
                     Header(selectedItem: $selectedItem)
-                        .padding(.bottom, 32)
+                    InfoTickerView()
                     ForEach(0..<4) { index in
                         ScrollView(.horizontal) {
                             OverView(
@@ -53,18 +94,14 @@ struct ContentView: View {
                     content: {
                         DummyChart()
                     }, detailedContent: {
-                        VStack(spacing: 24) {
-                            Text("What is workload, and why does it matter?")
-                                .font(.system(size: 24, weight: .bold))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            Text("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus euismod quis purus nec feugiat. Sed mi erat, sagittis sed mollis nec, bibendum sit amet mauris. Sed pellentesque, sapien ut faucibus venenatis, sem leo cursus purus, in posuere sem odio id lacus. In eget fringilla nulla. Aenean a nisi sit amet metus feugiat ultricies luctus vel purus. Vivamus cursus lobortis leo vitae placerat. Vestibulum ut eleifend ipsum, at congue lectus. Nullam mollis purus at eros ultricies lobortis. Pellentesque cursus id ante elementum vehicula Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus euismod quis purus nec feugiat. Sed mi erat, sagittis sed mollis nec, bibendum sit amet mauris. Sed pellentesque, sapien ut faucibus venenatis, sem leo cursus purus, in posuere sem odio id lacus. In eget fringilla nulla. Aenean a nisi sit amet metus feugiat ultricies luctus vel purus. Vivamus cursus lobortis leo vitae placerat. Vestibulum ut eleifend ipsum, at congue lectus. Nullam mollis purus at eros ultricies lobortis. Pellentesque cursus id ante elementum vehicula")
-                                .font(.system(size: 16, weight: .regular))
-                                .lineSpacing(8)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
+                        Text("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus euismod quis purus nec feugiat. Sed mi erat, sagittis sed mollis nec, bibendum sit amet mauris. Sed pellentesque, sapien ut faucibus venenatis, sem leo cursus purus, in posuere sem odio id lacus. In eget fringilla nulla. Aenean a nisi sit amet metus feugiat ultricies luctus vel purus. Vivamus cursus lobortis leo vitae placerat. Vestibulum ut eleifend ipsum, at congue lectus. Nullam mollis purus at eros ultricies lobortis. Pellentesque cursus id ante elementum vehicula Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus euismod quis purus nec feugiat. Sed mi erat, sagittis sed mollis nec, bibendum sit amet mauris. Sed pellentesque, sapien ut faucibus venenatis, sem leo cursus purus, in posuere sem odio id lacus. In eget fringilla nulla. Aenean a nisi sit amet metus feugiat ultricies luctus vel purus. Vivamus cursus lobortis leo vitae placerat. Vestibulum ut eleifend ipsum, at congue lectus. Nullam mollis purus at eros ultricies lobortis. Pellentesque cursus id ante elementum vehicula")
+                            .font(.system(size: 16, weight: .regular))
+                            .lineSpacing(8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     })
             }
         }
+        .ignoresSafeArea(edges: .bottom)
     }
 }
 
@@ -178,6 +215,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
     @State var animate: Bool = false
     @State var scrollOffset: Double = 0.0
     @State var contentHeight: Double = 0.0
+    @State var scrollViewContentHeight: Double = 0.0
     
     @Environment(\.dismiss) private var dismiss
     
@@ -247,13 +285,40 @@ struct DetailView<Content: View, DetailedContent: View>: View {
                         .foregroundStyle(.clear)
                         .frame(height: contentHeight)
                     
-                    detailedContent
-                        .offset(y: animate ? detailOffset : UIScreen.main.bounds.size.height)
-                        .padding(.horizontal, 24)
+                    VStack {
+                        Text("Titulo del detalle")
+                            .font(.system(size: 22, weight: .bold))
+                            .padding(.bottom, 16)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .offset(y: detailOffset)
+                        Text("Subtitulo del detalle que puede ser bastante largo")
+                            .font(.system(size: 17, weight: .regular))
+                            .foregroundStyle(.gray)
+                            .lineSpacing(4)
+                            .padding(.bottom, 32)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .offset(y: detailOffset*1.2)
+                        detailedContent
+                            .offset(y: detailOffset*1.5)
+                    }
+                    .offset(y: animate ? 0 : UIScreen.main.bounds.size.height)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 32)
+                    ArticleFooter()
                 }
-                
+                .background {
+                    GeometryReader { proxy in
+                        Color.clear.onAppear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                scrollViewContentHeight = proxy.size.height
+                                print("Scroll view content height: \(scrollViewContentHeight)")
+                                print("Screen size height: \(UIScreen.main.bounds.size.height)")
+                                print("Resta: \(scrollViewContentHeight - UIScreen.main.bounds.size.height)")
+                            }
+                        }
+                    }
+                }
             }
-            .contentMargins(.bottom, 60, for: .scrollContent)
             .scrollClipDisabled()
             .padding(.top, 18)
             
@@ -332,7 +397,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
     }
     
     var dummyBackgroundHeight: Double {
-        min(200, max(110,(200 + scrollOffset*5)))
+        min(200, max(110,(200 + scrollOffset*1.5)))
     }
     
     var chevronForegroundStyle: Color {
@@ -360,11 +425,11 @@ struct DetailView<Content: View, DetailedContent: View>: View {
     }
     
     var contentTextOpacity: Double {
-        1 + scrollOffset/10
+        1 + scrollOffset/50
     }
     
     var contentTextOffset: Double {
-        return max(0, -scrollOffset*6)
+        return max(0, -scrollOffset*2)
     }
     
     var shadowOpacity: Double {
@@ -376,7 +441,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
     }
     
     var detailOffset: Double {
-        return max(0, scrollOffset) / 2
+        return max(0, scrollOffset)
     }
     
     var headerVerticalOffset: Double {
@@ -388,7 +453,7 @@ struct DetailView<Content: View, DetailedContent: View>: View {
     }
     
     var contentScaleEffect: Double {
-        return min(1, max(0.9, 1 + scrollOffset/200))
+        return bezier(min(1, max(0.7, 1 + scrollOffset*0.005)))
     }
     
     func dismissAnimation() {
@@ -396,6 +461,91 @@ struct DetailView<Content: View, DetailedContent: View>: View {
             animate = false
             selectedItem = nil
         }
+    }
+    
+    func bezier(_ value: Double) -> Double {
+        let square = value * value;
+        return square / (2.0 * (square - value) + 1.0)
+    }
+}
+
+public struct ArticleFooter: View {
+    @State var thumbs: Bool? = nil
+    public var body: some View {
+        VStack(alignment: .leading, spacing: 32) {
+            HStack(spacing: 32) {
+                VStack(spacing: 4) {
+                    Text("Help us make Forma better.")
+                        .font(.system(size: 16, weight: .regular))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text("Was this helpful?")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                HStack(spacing: 12) {
+                    Button(action:{
+                        thumbs = thumbs != nil ? (thumbs == true ? false : nil) : false
+                    }, label: {
+                        Image(systemName: thumbs != nil ? (thumbs == false ? "hand.thumbsdown.fill" : "hand.thumbsdown") : "hand.thumbsdown.fill")
+                            .foregroundStyle(thumbs != nil ? (thumbs == false ? .red : .white.opacity(0.12)) : .white)
+                            .background(
+                                Circle()
+                                    .foregroundStyle(thumbs == false ? .clear : .gray.opacity(0.5))
+                                    .frame(width: 48, height: 48)
+                            )
+                            .overlay(
+                                Circle()
+                                    .stroke(lineWidth: 2)
+                                    .foregroundStyle(.red)
+                                    .frame(width: 48, height: 48)
+                                    .opacity(thumbs == false ? 1: 0)
+                            )
+                            .frame(width: 48, height: 48)
+                    })
+                    
+                    Button(action:{
+                        thumbs = thumbs != nil ? (thumbs == false ? true : nil) : true
+                    }, label: {
+                        Image(systemName: thumbs != nil ? (thumbs == true ? "hand.thumbsup.fill" : "hand.thumbsup") : "hand.thumbsup.fill")
+                            .foregroundStyle(thumbs != nil ? (thumbs == true ? .green : .white.opacity(0.12)) : .white)
+                            .background(
+                                Circle()
+                                    .foregroundStyle(thumbs == true ? .clear : .gray.opacity(0.5))
+                                    .frame(width: 48, height: 48)
+                            )
+                            .overlay(
+                                Circle()
+                                    .stroke(lineWidth: 2)
+                                    .foregroundStyle(.green)
+                                    .frame(width: 48, height: 48)
+                                    .opacity(thumbs == true ? 1: 0)
+                            )
+                            .frame(width: 48, height: 48)
+                    })
+                }
+            }
+            .padding(.horizontal, 24)
+            Rectangle()
+                .frame(height: 1)
+                .padding(.horizontal, 24)
+            HStack() {
+                Text("Last updated January 2024")
+                    .font(.system(size: 16))
+                    .foregroundStyle(.white)
+                    .padding(.bottom, 70)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 24)
+                Image(.formaFooter)
+                    .resizable()
+                    .colorMultiply(.white)
+                    .frame(width: 90, height: 80)
+            }
+        }
+        .padding(.top, 32)
+        .background(.black)
+        .frame(maxHeight: .infinity, alignment: .bottom)
     }
 }
 
