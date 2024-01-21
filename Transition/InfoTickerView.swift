@@ -348,7 +348,6 @@ struct InfoTickerView: View {
                     }
                 }
             }
-            .background(.white)
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 2)
@@ -392,32 +391,39 @@ struct InfoTickerView: View {
             }
             .onTapGesture {
                 if expanded {
-                    withAnimation(.smooth(duration: 0.3)) {
-                        expanded.toggle()
+                    withAnimation(.smooth(duration: 0.35)) {
                         opacityTransition.toggle()
                     }
-                    withAnimation(.smooth(duration: 0.3).delay(0.3)) {
+                    withAnimation(.smooth(duration: 0.55)) {
+                        expanded.toggle()
+                        
+                    }
+                    withAnimation(.smooth(duration: 0.15).delay(0.55)) {
                         transition.toggle()
                     }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                         opacityTransition.toggle()
                         schedule()
                     }
                 } else {
                     opacityTransition.toggle()
-                    withAnimation(.smooth(duration: 0.1)) {
-                        transition.toggle()
-                        if let timer {
-                            timer.invalidate()
-                            self.timer = nil
+                    if let timer {
+                        timer.invalidate()
+                        self.timer = nil
+                        withAnimation(.snappy) {
                             isComplete = false
                         }
                     }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        opacityTransition.toggle()
+                    withAnimation(.smooth(duration: 0.15)) {
+                        transition.toggle()
                     }
-                    withAnimation(.bouncy(duration: 0.55).delay(0.1)) {
+                    
+                    withAnimation(.bouncy(duration: 0.3).delay(0.2)) {
                         expanded.toggle()
+                    }
+                    
+                    withAnimation(.smooth(duration: 0.55).delay(0.2)) {
+                        opacityTransition.toggle()
                     }
                 }
             }
