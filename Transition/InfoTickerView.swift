@@ -293,58 +293,62 @@ struct InfoTickerView: View {
                         let itr = i - 1
                         let index = (items.count + itr) % items.count
                         let item = items[index]
-//                        let isActive: Bool = {
-//                            let currentIndex: Int
-//                            if let drag, abs(drag) > 30 {
-//                                currentIndex = self.currentIndex + Int(-drag / abs(drag))
-//                            } else {
-//                                currentIndex = self.currentIndex
-//                            }
-//                            return currentIndex == index || (index == items.count - 1 && currentIndex == -1)
-//                        }()
                         let isActive = currentIndex == index
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Image(systemName: item.symbol)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: symbolSize, height: symbolSize)
-                                HStack(spacing: 6) {
-                                    Text(item.title)
-                                    Capsule()
-                                        .foregroundStyle(.black.opacity(0.1))
-                                        .frame(maxWidth: .infinity)
-                                        .overlay(alignment: .leading) {
-                                            if isActive {
-                                                Capsule()
-                                                    .frame(maxWidth: isActive && isComplete ? .infinity : 0)
-                                                    .brightness(0.1)
-                                                    .foregroundStyle(item.color)
-                                            }
-                                        }
-                                        .frame(height: 2)
-                                        .padding(.trailing, 20)
-                                        .opacity(expanded ? 0 : 1)
-                                    Color.clear
+                        if drag == nil && (i==0 || i==4) {
+                            EmptyView()
+                        } else {
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack {
+                                    Image(systemName: item.symbol)
+                                        .resizable()
+                                        .scaledToFill()
                                         .frame(width: symbolSize, height: symbolSize)
+                                    HStack(spacing: 6) {
+                                        Text(item.title)
+                                        Color.clear
+                                            .frame(width: symbolSize, height: symbolSize)
+                                    }
+                                    .animation(.snappy(duration: 0.4)) { content in
+                                        content.opacity(isActive || drag != nil ? 1 : (expanded ? 1 : 0))
+                                    }
                                 }
-                                .animation(.snappy(duration: 0.4)) { content in
-                                    content.opacity(isActive || drag != nil ? 1 : (expanded ? 1 : 0))
-                                }
+                                .saturation(expanded ? 1 : (isActive ? 1 : 0))
+                                .opacity(currentIndex == index ? 1 : (transition ? (expanded ? 1 : 0) : 0.2))
+                                .foregroundColor(item.color)
+                                .offset(x: transition ? 0 : ((width - symbolSize) * CGFloat(itr - currentIndex) + (drag ?? 0)))
+                                TickerWrapper(item: item, width: width, isActive: currentIndex == index, drag: drag, expanded: $expanded, transition: $transition)
+                                    .equatable()
+                                    .offset(x: transition ? 0 : ((width + 64) * CGFloat(itr - currentIndex) + (drag ?? 0) * 1.5))
                             }
-                            .saturation(expanded ? 1 : (isActive ? 1 : 0))
-                            .opacity(currentIndex == index ? 1 : (transition ? (expanded ? 1 : 0) : 0.2))
-                            .foregroundColor(item.color)
-                            .offset(x: transition ? 0 : ((width - symbolSize) * CGFloat(itr - currentIndex) + (drag ?? 0)))
-                            TickerWrapper(item: item, width: width, isActive: currentIndex == index, drag: drag, expanded: $expanded, transition: $transition)
-                                .equatable()
-                                .offset(x: transition ? 0 : ((width + 64) * CGFloat(itr - currentIndex) + (drag ?? 0) * 1.5))
+                            .font(.system(size: 13, weight: .semibold))
+                            .opacity(currentIndex == itr ? 1 : (opacityTransition ? 0 : 1))
                         }
-                        .font(.system(size: 13, weight: .semibold))
-                        .opacity(currentIndex == itr ? 1 : (opacityTransition ? 0 : 1))
+                    }
+                }
+                
+                if !transition {
+                    HStack {
+                        ForEach(0..<3) { itr in
+                            let item = InfoItem.cases[itr]
+                            let isActive = currentIndex == itr
+                            Capsule()
+                                .foregroundStyle(.black.opacity(0.1))
+                                .frame(maxWidth: .infinity)
+                                .overlay(alignment: .leading) {
+                                    if isActive {
+                                        Capsule()
+                                            .frame(maxWidth: isActive && isComplete ? .infinity : 0)
+                                            .brightness(0.1)
+                                            .foregroundStyle(item.color)
+                                    }
+                                }
+                                .frame(height: 3)
+                            
+                        }
                     }
                 }
             }
+            .background(.white)
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 2)
@@ -387,15 +391,34 @@ struct InfoTickerView: View {
                 schedule()
             }
             .onTapGesture {
-                opacityTransition.toggle()
-                withAnimation(.smooth(duration: 0.3)) {
-                    transition.toggle()
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                if expanded {
+                    withAnimation(.smooth(duration: 0.3)) {
+                        expanded.toggle()
+                        opacityTransition.toggle()
+                    }
+                    withAnimation(.smooth(duration: 0.3).delay(0.3)) {
+                        transition.toggle()
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        opacityTransition.toggle()
+                        schedule()
+                    }
+                } else {
                     opacityTransition.toggle()
-                }
-                withAnimation(.smooth(duration: 0.3).delay(0.3)) {
-                    expanded.toggle()
+                    withAnimation(.smooth(duration: 0.1)) {
+                        transition.toggle()
+                        if let timer {
+                            timer.invalidate()
+                            self.timer = nil
+                            isComplete = false
+                        }
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        opacityTransition.toggle()
+                    }
+                    withAnimation(.bouncy(duration: 0.55).delay(0.1)) {
+                        expanded.toggle()
+                    }
                 }
             }
     }
