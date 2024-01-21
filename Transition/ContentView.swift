@@ -241,10 +241,11 @@ struct DetailView<Content: View, DetailedContent: View>: View {
         ZStack(alignment: .top) {
             ScrollViewOffset { offset in
                 scrollOffset = offset
-                print(offset)
                 if offset > 130 {
                     dismissAnimation()
                 }
+            } onBottomOffsetChange: { bottomOffset in
+                print(bottomOffset)
             } content: {
                 VStack {
                     if animate {

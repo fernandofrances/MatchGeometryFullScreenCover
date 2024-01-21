@@ -1,7 +1,9 @@
 import SwiftUI
 
 #Preview {
-    InfoTickerView()
+    ScrollView {
+        InfoTickerView()
+    }
 }
 
 
@@ -35,13 +37,29 @@ struct InfoDot: View {
     }
 }
 
-enum InfoItem: CaseIterable {
-    case location
-    case weather
-    case health
+enum InfoItem {
+    
+    case location([(String?, String)])
+    case weather(symbol: String?, [(String?, String)])
+    case health([(String?, String)])
     
     static var cases: [InfoItem] {
-        return [.location, .health, .weather]
+        return [
+            .health([
+                ("Energy", "1700kcal"),
+                ("Heart Rate", "123bpm"),
+                ("RPE", "4"),
+                ("Max Heart Rate", "123bpm")
+            ]),
+            .location([
+                (nil, "Rafa nadal Academy"),
+                ("Elevation", "123m")
+            ]),
+            .weather(symbol: "sun.max", [
+                ("Temperature", "18ºC"),
+                ("Humidity", "60%")
+            ])
+        ]
     }
     
     var title: String {
@@ -51,7 +69,7 @@ enum InfoItem: CaseIterable {
         case .weather:
             return "Weather"
         case .health:
-            return "Health"
+            return "Fitness"
         }
     }
     
@@ -78,29 +96,27 @@ enum InfoItem: CaseIterable {
     }
     
     var content: some View {
+        let values = self.values
+        return AnyView(
+            HStack (spacing: 10){
+                ForEach(Array(values.enumerated()), id: \.self.0) { index , item in
+                    InfoContent(title: item.0, item.1)
+                    if index != values.count - 1 {
+                        InfoDot()
+                    }
+                }
+            }
+        )
+    }
+    
+    var values: [(String?, String)] {
         switch self {
-        case .location:
-            return AnyView(HStack (spacing: 10){
-                InfoContent("Rafa Nadal Academy")
-                InfoDot()
-                InfoContent(title: "Elevation", "80m")
-                InfoDot()
-                InfoContent(title: "Location", "Very Nice")
-            })
-        case .weather:
-            return AnyView(HStack(spacing: 10) {
-                InfoContent("18º")
-                InfoDot()
-                InfoContent(title: "Conditions", "Clear")
-                InfoDot()
-                InfoContent(title: "Humidity", "66%")
-            })
-        case .health:
-            return AnyView(HStack(spacing: 10) {
-                InfoContent(title: "Energy", "214kcal")
-                InfoDot()
-                InfoContent(title: "Heart", "123bpm")
-            })
+        case .location(let array):
+            return array
+        case .weather(_, let array):
+            return array
+        case .health(let array):
+            return array
         }
     }
 }
@@ -118,20 +134,28 @@ struct TickerWrapper: View, Equatable {
     let isDragging: Bool
     let dragOffset: CGFloat
     
-    init(item: InfoItem, width containerWidth: CGFloat, isActive: Bool, drag: CGFloat?) {
+    init(item: InfoItem, width containerWidth: CGFloat, isActive: Bool, drag: CGFloat?, expanded: Binding<Bool>, transition: Binding<Bool>) {
         self.item = item
         self.containerWidth = containerWidth
         self.isActive = isActive
         self.isDragging = drag != nil
         self.dragOffset = drag ?? 0
+        self._expanded = expanded
+        self._transition = transition
     }
     
     let scrollOffset: CGFloat = 200
+    
+    var layout: AnyLayout {
+        expanded ? AnyLayout(FlowLayout()) : AnyLayout(HStackLayout())
+    }
     
     @State var width: CGFloat?
     @State var offset: CGFloat = 0
     @State var shouldDouble = false
     @State var timer: Timer?
+    @Binding var expanded: Bool
+    @Binding var transition: Bool
     
     func setupTicker(width: CGFloat?) {
         if let width {
@@ -153,30 +177,37 @@ struct TickerWrapper: View, Equatable {
     
     var body: some View {
         ZStack {
-            item.content
-                .overlay(alignment: .leading) {
-                    if shouldDouble {
-                        HStack(spacing: 10, content: {
-                            InfoDot()
-                            item.content
-                        })
-                        .padding(.leading, 10)
-                        .frame(width: 800, alignment: .leading)
-                        .offset(x: width ?? 0)
+            layout {
+                ForEach(Array(item.values.enumerated()), id: \.self.0) { index, element in
+                    InfoContent(title: element.0, element.1).padding(.trailing, 6)
+                    if index != item.values.count - 1 {
+                        InfoDot().padding(.trailing, 6)
                     }
                 }
-                .background {
-                    if width == nil {
-                        GeometryReader { g in
-                            Color.clear
-                                .onAppear {
-                                    setupTicker(width: g.size.width)
-                                }
-                        }
+            }
+            .overlay(alignment: .leading) {
+                if shouldDouble {
+                    HStack(spacing: 10, content: {
+                        InfoDot()
+                        item.content
+                    })
+                    .padding(.leading, 10)
+                    .frame(width: 800, alignment: .leading)
+                    .offset(x: width ?? 0)
+                }
+            }
+            .background {
+                if width == nil {
+                    GeometryReader { g in
+                        Color.clear
+                            .onAppear {
+                                setupTicker(width: g.size.width)
+                            }
                     }
                 }
-                .frame(width: 2000, alignment: .leading)
-                .offset(x: offset)
+            }
+            .frame(width: expanded ? UIScreen.main.bounds.width : 2000, alignment: .leading)
+            .offset(x: expanded ? 0 : offset)
         }
         .frame(width: containerWidth, alignment: .leading)
         .padding(.horizontal, 32)
@@ -215,13 +246,25 @@ struct InfoTickerView: View {
     @State var currentIndex: Int = 0
     @State var width: CGFloat = UIScreen.main.bounds.width - 64
     @State var drag: CGFloat?
+    @State var expanded: Bool = false
+    @State var transition: Bool = false
     
     @State var isComplete: Bool = false
+    
+    var layout: AnyLayout {
+        expanded ? AnyLayout(VStackLayout()) : AnyLayout(ZStackLayout())
+    }
+    
+    var range: Range<Int> {
+        expanded ? 0..<items.count : 0..<5
+    }
+    
+    var items = InfoItem.cases
     
     let symbolSize = CGFloat(16)
     
     func next() {
-        if currentIndex == 2 {
+        if currentIndex == items.count - 1 {
             currentIndex = -1
         }
         withAnimation(.smooth(duration: 0.6)) {
@@ -247,113 +290,127 @@ struct InfoTickerView: View {
     }
     
     var body: some View {
-        VStack {
-            ZStack {
-                ForEach(0..<5) { i in
-                    let itr = i - 1
-                    let index = (InfoItem.cases.count + itr) % InfoItem.cases.count
-                    let item = InfoItem.cases[index]
-                    let isActive: Bool = {
-                        let currentIndex: Int
-                        if let drag, abs(drag) > 30 {
-                            currentIndex = self.currentIndex + Int(-drag / abs(drag))
+            VStack {
+                layout {
+                    ForEach(0..<5) { i in
+                        if i > items.count - 1 && expanded {
+                           EmptyView()
                         } else {
-                            currentIndex = self.currentIndex
-                        }
-                        return currentIndex == index || (index == 2 && currentIndex == -1)
-                    }()
-                    VStack(alignment: .leading) {
-                        HStack {
-                            Image(systemName: item.symbol)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: symbolSize, height: symbolSize)
-                            HStack(spacing: 20) {
-                                Text(item.title)
-                                Spacer()
-                                Color.clear
-                                    .frame(width: symbolSize, height: symbolSize)
+                            let itr = i - 1
+                            let index = (items.count + itr) % items.count
+                            let item = items[index]
+                            let isActive: Bool = {
+                                let currentIndex: Int
+                                if let drag, abs(drag) > 30 {
+                                    currentIndex = self.currentIndex + Int(-drag / abs(drag))
+                                } else {
+                                    currentIndex = self.currentIndex
+                                }
+                                return currentIndex == index || (index == items.count - 1 && currentIndex == -1)
+                            }()
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack {
+                                    Image(systemName: item.symbol)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: symbolSize, height: symbolSize)
+                                    HStack(spacing: 6) {
+                                        Text(item.title)
+                                        Capsule()
+                                            .foregroundStyle(.black.opacity(0.1))
+                                            .frame(maxWidth: .infinity)
+                                            .overlay(alignment: .leading) {
+                                                if isActive {
+                                                    Capsule()
+                                                        .frame(maxWidth: isActive && isComplete ? .infinity : 0)
+                                                        .brightness(0.1)
+                                                        .foregroundStyle(item.color)
+                                                }
+                                            }
+                                            .frame(height: 2)
+                                            .padding(.trailing, 20)
+                                        Color.clear
+                                            .frame(width: symbolSize, height: symbolSize)
+                                    }
+                                    .animation(.snappy(duration: 0.4)) { content in
+                                        content.opacity(isActive || drag != nil ? 1 : 0)
+                                    }
+                                }
+                                .saturation(expanded ? 1 : (isActive ? 1 : 0))
+                                .opacity(isActive ? 1 : (transition ? 0 : 0.2))
+                                .foregroundColor(item.color)
+                                .offset(x: transition ? 0 : ((width - symbolSize) * CGFloat(itr - currentIndex) + (drag ?? 0)))
+                                
+                                TickerWrapper(item: item, width: width, isActive: currentIndex == index, drag: drag, expanded: $expanded, transition: $transition)
+                                    .equatable()
+                                    .offset(x: transition ? 0 :  ((width + 64) * CGFloat(itr - currentIndex) + (drag ?? 0) * 1.5))
+                                    .opacity(isActive ? 1 : (transition ? 0 : 1))
                             }
-                            .animation(.snappy(duration: 0.4)) { content in
-                                content.opacity(isActive || drag != nil ? 1 : 0)
-                            }
+                            .font(.system(size: 13, weight: .semibold))
                         }
-                        .saturation(isActive ? 1 : 0)
-                        .opacity(isActive ? 1 : 0.6)
-                        .foregroundColor(item.color)
-                        .offset(x: (width - symbolSize) * CGFloat(itr - currentIndex) + (drag ?? 0))
-                        
-                        TickerWrapper(item: item, width: width, isActive: currentIndex == index, drag: drag)
-                            .equatable()
-                            .offset(x: (width + 64) * CGFloat(itr - currentIndex) + (drag ?? 0) * 1.5)
+                       
                     }
                 }
             }
-            HStack {
-                ForEach(0..<InfoItem.cases.count) { itr in
-                    let item = InfoItem.cases[itr]
-                    let isActive = currentIndex == itr
-                    Capsule()
-                        .foregroundStyle(.black.opacity(0.1))
-                        .frame(maxWidth: .infinity)
-                        .overlay(alignment: .leading) {
-                            if isActive {
-                                Capsule()
-                                    .frame(maxWidth: isActive && isComplete ? .infinity : 0)
-                                    .brightness(0.1)
-                                    .foregroundStyle(item.color)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 2)
+                    .onChanged({ value in
+                        if let timer {
+                            withAnimation(.snappy) {
+                                isComplete = false
                             }
+                            timer.invalidate()
+                            self.timer = nil
                         }
-                        .frame(height: 3)
-
+                        withAnimation(.snappy(duration: 0.1)) {
+                            drag = value.translation.width
+                        }
+                    })
+                    .onEnded({ value in
+                        let change = max(-1,min(1,Int(round(-value.predictedEndTranslation.width / width))))
+                        let newIndex = change + currentIndex
+                        if newIndex == items.count {
+                            currentIndex = -1
+                        } else if newIndex == -1 {
+                            currentIndex = items.count
+                        }
+                        schedule()
+                        withAnimation(.smooth(duration: 0.4)) {
+                            currentIndex += change
+                            drag = nil
+                        }
+                    })
+            )
+            .background {
+                GeometryReader { geometry in
+                    Color.clear.onAppear {
+                        width = geometry.size.width
+                    }
                 }
             }
-        }
-        .contentShape(Rectangle())
-        .gesture(
-            DragGesture(minimumDistance: 2)
-                .onChanged({ value in
-                    if let timer {
-                        withAnimation(.snappy) {
-                            isComplete = false
-                        }
-                        timer.invalidate()
-                        self.timer = nil
-                    }
-                    withAnimation(.snappy(duration: 0.1)) {
-                        drag = value.translation.width
-                    }
-                })
-                .onEnded({ value in
-                    let change = max(-1,min(1,Int(round(-value.predictedEndTranslation.width / width))))
-                    let newIndex = change + currentIndex
-                    if newIndex == InfoItem.cases.count {
-                        currentIndex = -1
-                    } else if newIndex == -1 {
-                        currentIndex = InfoItem.cases.count
-                    }
-                    schedule()
-                    withAnimation(.smooth(duration: 0.4)) {
-                        currentIndex += change
-                        drag = nil
-                    }
-                })
-        )
-        .onTapGesture {
-            next()
-            schedule()
-        }
-        .background {
-            GeometryReader { geometry in
-                Color.clear.onAppear {
-                    width = geometry.size.width
+            .padding(32)
+            .onAppear {
+                schedule()
+            }
+            .onTapGesture {
+                if transition {
+//                    withAnimation(.snappy(duration: 0.5)) {
+//                        expanded.toggle()
+//                    }
+                    //withAnimation(.snappy(duration: 0.5).delay(0.5)) {
+                        transition.toggle()
+                    //}
+                 
+                } else {
+                    //withAnimation(.snappy(duration: 0.5)) {
+                        transition.toggle()
+                    //}
+//                    withAnimation(.snappy(duration: 0.5).delay(0.5)) {
+//                        expanded.toggle()
+//                    }
                 }
             }
-        }
-        .padding(32)
-        .onAppear {
-             schedule()
-        }
     }
 }
 
@@ -363,5 +420,19 @@ fileprivate extension Int {
     }
     var previous: Int {
         (self + InfoItem.cases.count - 1) % InfoItem.cases.count
+    }
+}
+
+
+extension View {
+    @ViewBuilder public func `if`<Content: View>(
+        _ condition: Bool,
+        transform: (Self) -> Content
+    ) -> some View {
+        if condition {
+            transform(self)
+        } else {
+            self
+        }
     }
 }
