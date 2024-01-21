@@ -147,7 +147,7 @@ struct TickerWrapper: View, Equatable {
     let scrollOffset: CGFloat = 200
     
     var layout: AnyLayout {
-        expanded ? AnyLayout(FlowLayout()) : AnyLayout(HStackLayout())
+        transition ? AnyLayout(FlowLayout()) : AnyLayout(HStackLayout())
     }
     
     @State var width: CGFloat?
@@ -179,9 +179,9 @@ struct TickerWrapper: View, Equatable {
         ZStack {
             layout {
                 ForEach(Array(item.values.enumerated()), id: \.self.0) { index, element in
-                    InfoContent(title: element.0, element.1).padding(.trailing, 6)
+                    InfoContent(title: element.0, element.1).padding(.trailing, 10)
                     if index != item.values.count - 1 {
-                        InfoDot().padding(.trailing, 6)
+                        InfoDot().padding(.trailing, 10)
                     }
                 }
             }
@@ -206,8 +206,8 @@ struct TickerWrapper: View, Equatable {
                     }
                 }
             }
-            .frame(width: expanded ? UIScreen.main.bounds.width : 2000, alignment: .leading)
-            .offset(x: expanded ? 0 : offset)
+            .frame(width: transition ? UIScreen.main.bounds.width : 2000, alignment: .leading)
+            .offset(x: transition ? 0 : offset)
         }
         .frame(width: containerWidth, alignment: .leading)
         .padding(.horizontal, 32)
@@ -238,6 +238,15 @@ struct TickerWrapper: View, Equatable {
                 setupTicker(width: nil)
             }
         }
+        .onChange(of: transition, { oldValue, newValue in
+            if newValue {
+                withAnimation(.snappy) {
+                    offset = 0
+                }
+            } else {
+                setupTicker(width: nil)
+            }
+        })
     }
 }
 
@@ -253,10 +262,6 @@ struct InfoTickerView: View {
     
     var layout: AnyLayout {
         expanded ? AnyLayout(VStackLayout()) : AnyLayout(ZStackLayout())
-    }
-    
-    var range: Range<Int> {
-        expanded ? 0..<items.count : 0..<5
     }
     
     var items = InfoItem.cases
@@ -293,7 +298,7 @@ struct InfoTickerView: View {
             VStack {
                 layout {
                     ForEach(0..<5) { i in
-                        if i > items.count - 1 && expanded {
+                        if i > items.count - 1 && transition {
                            EmptyView()
                         } else {
                             let itr = i - 1
@@ -329,26 +334,25 @@ struct InfoTickerView: View {
                                             }
                                             .frame(height: 2)
                                             .padding(.trailing, 20)
+                                            .opacity(expanded ? 0 : 1)
                                         Color.clear
                                             .frame(width: symbolSize, height: symbolSize)
                                     }
                                     .animation(.snappy(duration: 0.4)) { content in
-                                        content.opacity(isActive || drag != nil ? 1 : 0)
+                                        content.opacity(isActive || drag != nil ? 1 : (expanded ? 1 : 0))
                                     }
                                 }
                                 .saturation(expanded ? 1 : (isActive ? 1 : 0))
-                                .opacity(isActive ? 1 : (transition ? 0 : 0.2))
+                                .opacity(currentIndex == index ? 1 : (transition ? (expanded ? 1 : 0) : 0.2))
                                 .foregroundColor(item.color)
                                 .offset(x: transition ? 0 : ((width - symbolSize) * CGFloat(itr - currentIndex) + (drag ?? 0)))
-                                
                                 TickerWrapper(item: item, width: width, isActive: currentIndex == index, drag: drag, expanded: $expanded, transition: $transition)
                                     .equatable()
-                                    .offset(x: transition ? 0 :  ((width + 64) * CGFloat(itr - currentIndex) + (drag ?? 0) * 1.5))
-                                    .opacity(isActive ? 1 : (transition ? 0 : 1))
+                                    .offset(x: transition ? 0 : ((width + 64) * CGFloat(itr - currentIndex) + (drag ?? 0) * 1.5))
+                                    .opacity(isActive ? 1 : (expanded ? 1 : 0))
                             }
                             .font(.system(size: 13, weight: .semibold))
                         }
-                       
                     }
                 }
             }
@@ -395,20 +399,19 @@ struct InfoTickerView: View {
             }
             .onTapGesture {
                 if transition {
-//                    withAnimation(.snappy(duration: 0.5)) {
-//                        expanded.toggle()
-//                    }
-                    //withAnimation(.snappy(duration: 0.5).delay(0.5)) {
+                    withAnimation(.snappy(duration: 0.3)) {
+                        expanded.toggle()
+                    }
+                    withAnimation(.snappy(duration: 0.3).delay(0.3)) {
                         transition.toggle()
-                    //}
-                 
+                    }
                 } else {
-                    //withAnimation(.snappy(duration: 0.5)) {
+                    withAnimation(.snappy(duration: 0.3)) {
                         transition.toggle()
-                    //}
-//                    withAnimation(.snappy(duration: 0.5).delay(0.5)) {
-//                        expanded.toggle()
-//                    }
+                    }
+                    withAnimation(.snappy(duration: 0.3).delay(0.3)) {
+                        expanded.toggle()
+                    }
                 }
             }
     }
