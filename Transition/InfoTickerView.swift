@@ -54,7 +54,8 @@ enum InfoItem {
             .weather(symbol: "sun.max", [
                 ("Temperature", "18ºC"),
                 ("Humidity", "60%")
-            ]),
+            ])
+            ,
             .location([
                 (nil, "Rafa nadal Academy"),
                 ("Elevation", "123m")
@@ -134,27 +135,25 @@ struct TickerWrapper: View, Equatable {
     let isDragging: Bool
     let dragOffset: CGFloat
     
-    init(item: InfoItem, width containerWidth: CGFloat, isActive: Bool, drag: CGFloat?, expanded: Binding<Bool>, transition: Binding<Bool>) {
+    init(item: InfoItem, width containerWidth: CGFloat, isActive: Bool, drag: CGFloat?, transition: Binding<Bool>) {
         self.item = item
         self.containerWidth = containerWidth
         self.isActive = isActive
         self.isDragging = drag != nil
         self.dragOffset = drag ?? 0
-        self._expanded = expanded
         self._transition = transition
     }
     
     let scrollOffset: CGFloat = 200
     
     var layout: AnyLayout {
-        transition ? AnyLayout(FlowLayout()) : AnyLayout(HStackLayout())
+        transition ? AnyLayout(FlowLayout()) : AnyLayout(HStackLayout(spacing: 0))
     }
     
     @State var width: CGFloat?
     @State var offset: CGFloat = 0
     @State var shouldDouble = false
     @State var timer: Timer?
-    @Binding var expanded: Bool
     @Binding var transition: Bool
     
     func setupTicker(width: CGFloat?) {
@@ -162,13 +161,13 @@ struct TickerWrapper: View, Equatable {
             self.width = width
             if width > containerWidth {
                 shouldDouble = true
-                withAnimation(.linear(duration: 6)) {
+                withAnimation(.linear(duration: 10)) {
                     offset = -scrollOffset
                 }
             }
         } else {
             if shouldDouble {
-                withAnimation(.linear(duration: 6)) {
+                withAnimation(.linear(duration: 10)) {
                     offset = -scrollOffset
                 }
             }
@@ -179,19 +178,19 @@ struct TickerWrapper: View, Equatable {
         ZStack {
             layout {
                 ForEach(Array(item.values.enumerated()), id: \.self.0) { index, element in
-                    InfoContent(title: element.0, element.1).padding(.trailing, 10)
+                    InfoContent(title: element.0, element.1).padding(.trailing, 6)
                     if index != item.values.count - 1 {
-                        InfoDot().padding(.trailing, 10)
+                        InfoDot().padding(.trailing, 6)
                     }
                 }
             }
             .overlay(alignment: .leading) {
                 if shouldDouble {
-                    HStack(spacing: 10, content: {
+                    HStack(spacing: 6, content: {
                         InfoDot()
                         item.content
                     })
-                    .padding(.leading, 10)
+                    .padding(.leading, 6)
                     .frame(width: 800, alignment: .leading)
                     .offset(x: width ?? 0)
                 }
@@ -274,15 +273,15 @@ struct InfoTickerView: View {
     func schedule() {
         isComplete = false
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            withAnimation(.linear(duration: 5).delay(0.4)) {
+            withAnimation(.linear(duration: 9).delay(0.4)) {
                 isComplete = true
             }
         }
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 6, repeats: true, block: { timer in
+        timer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true, block: { timer in
             next()
             isComplete = false
-            withAnimation(.linear(duration: 5).delay(0.5)) {
+            withAnimation(.linear(duration: 9).delay(0.5)) {
                 isComplete = true
             }
         })
@@ -291,12 +290,12 @@ struct InfoTickerView: View {
     var body: some View {
             VStack {
                 layout {
-                    ForEach(0..<5) { i in
+                    ForEach(0..<(InfoItem.cases.count + 2)) { i in
                         let itr = i - 1
                         let index = (items.count + itr) % items.count
                         let item = items[index]
                         let isActive = currentIndex == index
-                        if drag == nil && (i==0 || i==4) {
+                        if shrinkTransition && (i==0 || i==InfoItem.cases.count + 1) {
                             EmptyView()
                         } else {
                             VStack(alignment: .leading, spacing: 12) {
@@ -305,20 +304,16 @@ struct InfoTickerView: View {
                                         .resizable()
                                         .scaledToFill()
                                         .frame(width: symbolSize, height: symbolSize)
-                                    HStack(spacing: 6) {
-                                        Text(item.title)
-                                        Color.clear
-                                            .frame(width: symbolSize, height: symbolSize)
-                                    }
-                                    .animation(.snappy(duration: 0.4)) { content in
-                                        content.opacity(isActive || drag != nil ? 1 : (expanded ? 1 : 0))
-                                    }
+                                    Text(item.title)
+                                        .animation(.snappy(duration: 0.4)) { content in
+                                            content.opacity(isActive || drag != nil ? 1 : (expanded ? 1 : 0))
+                                        }
                                 }
                                 .saturation(expanded ? 1 : (isActive ? 1 : 0))
                                 .opacity(currentIndex == index ? 1 : (shrinkTransition ? (expanded ? 1 : 0) : 0.2))
                                 .foregroundColor(item.color)
                                 .offset(x: shrinkTransition ? 0 : ((width - symbolSize) * CGFloat(itr - currentIndex) + (drag ?? 0)))
-                                TickerWrapper(item: item, width: width, isActive: currentIndex == index, drag: drag, expanded: $expanded, transition: $layoutTransition)
+                                TickerWrapper(item: item, width: width, isActive: currentIndex == index, drag: drag, transition: $layoutTransition)
                                     .equatable()
                                     .offset(x: shrinkTransition ? 0 : ((width + 64) * CGFloat(itr - currentIndex) + (drag ?? 0) * 1.5))
                             }
@@ -328,27 +323,26 @@ struct InfoTickerView: View {
                     }
                 }
                 
-                if !shrinkTransition {
-                    HStack {
-                        ForEach(0..<3) { itr in
-                            let item = InfoItem.cases[itr]
-                            let isActive = currentIndex == itr
-                            Capsule()
-                                .foregroundStyle(.black.opacity(0.1))
-                                .frame(maxWidth: .infinity)
-                                .overlay(alignment: .leading) {
-                                    if isActive {
-                                        Capsule()
-                                            .frame(maxWidth: isActive && isComplete ? .infinity : 0)
-                                            .brightness(0.1)
-                                            .foregroundStyle(item.color)
-                                    }
+                HStack {
+                    ForEach(0..<InfoItem.cases.count) { itr in
+                        let item = InfoItem.cases[itr]
+                        let isActive = currentIndex == itr
+                        Capsule()
+                            .foregroundStyle(.black.opacity(0.1))
+                            .frame(maxWidth: .infinity)
+                            .overlay(alignment: .leading) {
+                                if isActive {
+                                    Capsule()
+                                        .frame(maxWidth: isActive && isComplete ? .infinity : 0)
+                                        .brightness(0.1)
+                                        .foregroundStyle(item.color)
                                 }
-                                .frame(height: 3)
-                            
-                        }
+                            }
+                            .frame(height: 3)
+                        
                     }
                 }
+                .opacity(shrinkTransition ? 0 : 1)
             }
             .contentShape(Rectangle())
             .gesture(
@@ -398,17 +392,14 @@ struct InfoTickerView: View {
                     }
                     withAnimation(.bouncy(duration: 0.35)) {
                         expanded.toggle()
-                    }
-                    
-                    withAnimation(.smooth(duration: 0.1).delay(0.35)) {
-                        shrinkTransition.toggle()
-                    }
-                    
-                    withAnimation(.smooth(duration: 0.35).delay(0.15)) {
                         layoutTransition.toggle()
                     }
                     
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    withAnimation(.smooth(duration: 0.35).delay(0.35)) {
+                        shrinkTransition.toggle()
+                    }
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
                         opacityTransition.toggle()
                         schedule()
                     }
