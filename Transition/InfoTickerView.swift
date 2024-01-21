@@ -51,13 +51,13 @@ enum InfoItem {
                 ("RPE", "4"),
                 ("Max Heart Rate", "123bpm")
             ]),
-            .location([
-                (nil, "Rafa nadal Academy"),
-                ("Elevation", "123m")
-            ]),
             .weather(symbol: "sun.max", [
                 ("Temperature", "18ºC"),
                 ("Humidity", "60%")
+            ]),
+            .location([
+                (nil, "Rafa nadal Academy"),
+                ("Elevation", "123m")
             ])
         ]
     }
@@ -238,15 +238,6 @@ struct TickerWrapper: View, Equatable {
                 setupTicker(width: nil)
             }
         }
-        .onChange(of: transition, { oldValue, newValue in
-            if newValue {
-                withAnimation(.snappy) {
-                    offset = 0
-                }
-            } else {
-                setupTicker(width: nil)
-            }
-        })
     }
 }
 
@@ -257,6 +248,7 @@ struct InfoTickerView: View {
     @State var drag: CGFloat?
     @State var expanded: Bool = false
     @State var transition: Bool = false
+    @State var opacityTransition: Bool = false
     
     @State var isComplete: Bool = false
     
@@ -298,61 +290,58 @@ struct InfoTickerView: View {
             VStack {
                 layout {
                     ForEach(0..<5) { i in
-                        if i > items.count - 1 && transition {
-                           EmptyView()
-                        } else {
-                            let itr = i - 1
-                            let index = (items.count + itr) % items.count
-                            let item = items[index]
-                            let isActive: Bool = {
-                                let currentIndex: Int
-                                if let drag, abs(drag) > 30 {
-                                    currentIndex = self.currentIndex + Int(-drag / abs(drag))
-                                } else {
-                                    currentIndex = self.currentIndex
-                                }
-                                return currentIndex == index || (index == items.count - 1 && currentIndex == -1)
-                            }()
-                            VStack(alignment: .leading, spacing: 12) {
-                                HStack {
-                                    Image(systemName: item.symbol)
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: symbolSize, height: symbolSize)
-                                    HStack(spacing: 6) {
-                                        Text(item.title)
-                                        Capsule()
-                                            .foregroundStyle(.black.opacity(0.1))
-                                            .frame(maxWidth: .infinity)
-                                            .overlay(alignment: .leading) {
-                                                if isActive {
-                                                    Capsule()
-                                                        .frame(maxWidth: isActive && isComplete ? .infinity : 0)
-                                                        .brightness(0.1)
-                                                        .foregroundStyle(item.color)
-                                                }
+                        let itr = i - 1
+                        let index = (items.count + itr) % items.count
+                        let item = items[index]
+//                        let isActive: Bool = {
+//                            let currentIndex: Int
+//                            if let drag, abs(drag) > 30 {
+//                                currentIndex = self.currentIndex + Int(-drag / abs(drag))
+//                            } else {
+//                                currentIndex = self.currentIndex
+//                            }
+//                            return currentIndex == index || (index == items.count - 1 && currentIndex == -1)
+//                        }()
+                        let isActive = currentIndex == index
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Image(systemName: item.symbol)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: symbolSize, height: symbolSize)
+                                HStack(spacing: 6) {
+                                    Text(item.title)
+                                    Capsule()
+                                        .foregroundStyle(.black.opacity(0.1))
+                                        .frame(maxWidth: .infinity)
+                                        .overlay(alignment: .leading) {
+                                            if isActive {
+                                                Capsule()
+                                                    .frame(maxWidth: isActive && isComplete ? .infinity : 0)
+                                                    .brightness(0.1)
+                                                    .foregroundStyle(item.color)
                                             }
-                                            .frame(height: 2)
-                                            .padding(.trailing, 20)
-                                            .opacity(expanded ? 0 : 1)
-                                        Color.clear
-                                            .frame(width: symbolSize, height: symbolSize)
-                                    }
-                                    .animation(.snappy(duration: 0.4)) { content in
-                                        content.opacity(isActive || drag != nil ? 1 : (expanded ? 1 : 0))
-                                    }
+                                        }
+                                        .frame(height: 2)
+                                        .padding(.trailing, 20)
+                                        .opacity(expanded ? 0 : 1)
+                                    Color.clear
+                                        .frame(width: symbolSize, height: symbolSize)
                                 }
-                                .saturation(expanded ? 1 : (isActive ? 1 : 0))
-                                .opacity(currentIndex == index ? 1 : (transition ? (expanded ? 1 : 0) : 0.2))
-                                .foregroundColor(item.color)
-                                .offset(x: transition ? 0 : ((width - symbolSize) * CGFloat(itr - currentIndex) + (drag ?? 0)))
-                                TickerWrapper(item: item, width: width, isActive: currentIndex == index, drag: drag, expanded: $expanded, transition: $transition)
-                                    .equatable()
-                                    .offset(x: transition ? 0 : ((width + 64) * CGFloat(itr - currentIndex) + (drag ?? 0) * 1.5))
-                                    .opacity(isActive ? 1 : (expanded ? 1 : 0))
+                                .animation(.snappy(duration: 0.4)) { content in
+                                    content.opacity(isActive || drag != nil ? 1 : (expanded ? 1 : 0))
+                                }
                             }
-                            .font(.system(size: 13, weight: .semibold))
+                            .saturation(expanded ? 1 : (isActive ? 1 : 0))
+                            .opacity(currentIndex == index ? 1 : (transition ? (expanded ? 1 : 0) : 0.2))
+                            .foregroundColor(item.color)
+                            .offset(x: transition ? 0 : ((width - symbolSize) * CGFloat(itr - currentIndex) + (drag ?? 0)))
+                            TickerWrapper(item: item, width: width, isActive: currentIndex == index, drag: drag, expanded: $expanded, transition: $transition)
+                                .equatable()
+                                .offset(x: transition ? 0 : ((width + 64) * CGFloat(itr - currentIndex) + (drag ?? 0) * 1.5))
                         }
+                        .font(.system(size: 13, weight: .semibold))
+                        .opacity(currentIndex == itr ? 1 : (opacityTransition ? 0 : 1))
                     }
                 }
             }
@@ -398,20 +387,15 @@ struct InfoTickerView: View {
                 schedule()
             }
             .onTapGesture {
-                if transition {
-                    withAnimation(.snappy(duration: 0.3)) {
-                        expanded.toggle()
-                    }
-                    withAnimation(.snappy(duration: 0.3).delay(0.3)) {
-                        transition.toggle()
-                    }
-                } else {
-                    withAnimation(.snappy(duration: 0.3)) {
-                        transition.toggle()
-                    }
-                    withAnimation(.snappy(duration: 0.3).delay(0.3)) {
-                        expanded.toggle()
-                    }
+                opacityTransition.toggle()
+                withAnimation(.smooth(duration: 0.3)) {
+                    transition.toggle()
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    opacityTransition.toggle()
+                }
+                withAnimation(.smooth(duration: 0.3).delay(0.3)) {
+                    expanded.toggle()
                 }
             }
     }
