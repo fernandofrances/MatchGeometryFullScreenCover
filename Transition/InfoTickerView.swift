@@ -246,9 +246,11 @@ struct InfoTickerView: View {
     @State var currentIndex: Int = 0
     @State var width: CGFloat = UIScreen.main.bounds.width - 64
     @State var drag: CGFloat?
-    @State var expanded: Bool = false
-    @State var transition: Bool = false
+    
+    @State var layoutTransition: Bool = false
     @State var opacityTransition: Bool = false
+    @State var expanded: Bool = false
+    @State var shrinkTransition: Bool = false
     
     @State var isComplete: Bool = false
     
@@ -313,12 +315,12 @@ struct InfoTickerView: View {
                                     }
                                 }
                                 .saturation(expanded ? 1 : (isActive ? 1 : 0))
-                                .opacity(currentIndex == index ? 1 : (transition ? (expanded ? 1 : 0) : 0.2))
+                                .opacity(currentIndex == index ? 1 : (shrinkTransition ? (expanded ? 1 : 0) : 0.2))
                                 .foregroundColor(item.color)
-                                .offset(x: transition ? 0 : ((width - symbolSize) * CGFloat(itr - currentIndex) + (drag ?? 0)))
-                                TickerWrapper(item: item, width: width, isActive: currentIndex == index, drag: drag, expanded: $expanded, transition: $transition)
+                                .offset(x: shrinkTransition ? 0 : ((width - symbolSize) * CGFloat(itr - currentIndex) + (drag ?? 0)))
+                                TickerWrapper(item: item, width: width, isActive: currentIndex == index, drag: drag, expanded: $expanded, transition: $layoutTransition)
                                     .equatable()
-                                    .offset(x: transition ? 0 : ((width + 64) * CGFloat(itr - currentIndex) + (drag ?? 0) * 1.5))
+                                    .offset(x: shrinkTransition ? 0 : ((width + 64) * CGFloat(itr - currentIndex) + (drag ?? 0) * 1.5))
                             }
                             .font(.system(size: 13, weight: .semibold))
                             .opacity(currentIndex == itr ? 1 : (opacityTransition ? 0 : 1))
@@ -326,7 +328,7 @@ struct InfoTickerView: View {
                     }
                 }
                 
-                if !transition {
+                if !shrinkTransition {
                     HStack {
                         ForEach(0..<3) { itr in
                             let item = InfoItem.cases[itr]
@@ -391,22 +393,29 @@ struct InfoTickerView: View {
             }
             .onTapGesture {
                 if expanded {
-                    withAnimation(.smooth(duration: 0.35)) {
+                    withAnimation(.snappy(duration: 0.15)) {
                         opacityTransition.toggle()
                     }
-                    withAnimation(.smooth(duration: 0.55)) {
+                    withAnimation(.bouncy(duration: 0.35)) {
                         expanded.toggle()
-                        
                     }
-                    withAnimation(.smooth(duration: 0.15).delay(0.55)) {
-                        transition.toggle()
+                    
+                    withAnimation(.smooth(duration: 0.1).delay(0.35)) {
+                        shrinkTransition.toggle()
                     }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    
+                    withAnimation(.smooth(duration: 0.35).delay(0.15)) {
+                        layoutTransition.toggle()
+                    }
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                         opacityTransition.toggle()
                         schedule()
                     }
+                    
                 } else {
                     opacityTransition.toggle()
+                    
                     if let timer {
                         timer.invalidate()
                         self.timer = nil
@@ -414,15 +423,19 @@ struct InfoTickerView: View {
                             isComplete = false
                         }
                     }
-                    withAnimation(.smooth(duration: 0.15)) {
-                        transition.toggle()
+                    withAnimation(.smooth(duration: 0.35)) {
+                        layoutTransition.toggle()
                     }
                     
-                    withAnimation(.bouncy(duration: 0.3).delay(0.2)) {
+                    withAnimation(.smooth(duration: 0.1)) {
+                        shrinkTransition.toggle()
+                    }
+                    
+                    withAnimation(.bouncy(duration: 0.35).delay(0.1)) {
                         expanded.toggle()
                     }
                     
-                    withAnimation(.smooth(duration: 0.55).delay(0.2)) {
+                    withAnimation(.smooth(duration: 0.35).delay(0.2)) {
                         opacityTransition.toggle()
                     }
                 }
